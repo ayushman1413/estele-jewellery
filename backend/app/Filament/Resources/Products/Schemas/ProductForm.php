@@ -35,11 +35,11 @@ class ProductForm
                     ->required()
                     ->numeric()
                     ->minValue(0)
-                    ->prefix('$'),
+                    ->prefix('₹'),
                 TextInput::make('compare_at_price')
                     ->numeric()
                     ->minValue(0)
-                    ->prefix('$'),
+                    ->prefix('₹'),
                 TextInput::make('stock_quantity')
                     ->required()
                     ->numeric()
@@ -65,9 +65,19 @@ class ProductForm
                             ->collection('gallery')
                             ->conversion('card')
                             ->image()
-                            ->maxSize(10240) // 10MB - Phase 6 audit, was unlimited
+                            ->maxSize(500) // 500KB per image
                             ->multiple()
                             ->reorderable()
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('Video')
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('video')
+                            ->collection('video')
+                            ->acceptedFileTypes(['video/mp4', 'video/webm'])
+                            ->maxSize(2048) // 2MB
                             ->columnSpanFull(),
                     ])
                     ->columnSpanFull(),

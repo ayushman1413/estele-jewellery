@@ -57,7 +57,7 @@ class VerifyReviewSubmissionTest extends TestCase
         // instead of writing an arbitrary terminal status directly.
         $path = $status === 'cancelled'
             ? ['cancelled']
-            : array_slice(['packed', 'shipped', 'delivered'], 0, array_search($status, ['placed', 'packed', 'shipped', 'delivered']));
+            : array_slice(['accepted', 'packed', 'shipped', 'delivered'], 0, array_search($status, ['placed', 'accepted', 'packed', 'shipped', 'delivered']));
 
         foreach ($path as $step) {
             $order->update(['status' => $step]);

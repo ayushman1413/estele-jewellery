@@ -13,7 +13,8 @@ class Order extends Model
      * direct API/tinker/bulk-action update can't skip or reverse the pipeline.
      */
     public const ALLOWED_TRANSITIONS = [
-        'placed' => ['packed', 'cancelled'],
+        'placed' => ['accepted', 'cancelled'],
+        'accepted' => ['packed', 'cancelled'],
         'packed' => ['shipped', 'cancelled'],
         'shipped' => ['delivered', 'returned'],
         'delivered' => ['returned'],
@@ -64,7 +65,7 @@ class Order extends Model
      * ALLOWED_TRANSITIONS but from the customer's side: once shipped, "cancel"
      * isn't offered (packed/placed only), "return" only after delivered.
      */
-    public const CANCELLABLE_STATUSES = ['placed', 'packed'];
+    public const CANCELLABLE_STATUSES = ['placed', 'accepted', 'packed'];
 
     public const RETURNABLE_STATUSES = ['delivered'];
 
@@ -140,6 +141,16 @@ class Order extends Model
 
             if ($to === 'delivered' && $order->payment_method === 'cod' && $order->payment_status === 'pending') {
                 $order->payment_status = 'paid';
+            }
+        });
+
+        // Once accepted, the customer gets the "packed and ready for shipping"
+        // notice and the invoice becomes downloadable (see OrdersTable::streamInvoice
+        // visibility). Sent from `updated` (after commit) so it never fires if the
+        // transition guard above rejects the move.
+        static::updated(function (Order $order) {
+            if ($order->wasChanged('status') && $order->status === 'accepted' && filled($order->customer_email)) {
+                \Illuminate\Support\Facades\Mail::to($order->customer_email)->queue(new \App\Mail\OrderPacked($order));
             }
         });
     }

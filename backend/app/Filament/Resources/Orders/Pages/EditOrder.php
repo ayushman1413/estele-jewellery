@@ -26,6 +26,7 @@ class EditOrder extends EditRecord
                 ->label('Download Invoice')
                 ->icon(Heroicon::OutlinedDocumentArrowDown)
                 ->color('gray')
+                ->visible(fn (Order $record) => $record->status !== 'placed')
                 ->action(fn (Order $record) => OrdersTable::streamInvoice($record)),
 
             Action::make('createShipment')

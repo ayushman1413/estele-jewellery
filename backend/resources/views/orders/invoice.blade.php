@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <title>Invoice {{ $order->order_number }}</title>
     <style>
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #222; }
+        {{-- DejaVu Sans (dompdf's bundled Unicode font) — Helvetica/Arial can't render ₹. --}}
+        body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; color: #222; }
         h1 { font-size: 20px; margin: 0 0 4px; }
         .muted { color: #666; }
         .header { overflow: hidden; margin-bottom: 24px; }
@@ -58,8 +59,8 @@
                     <td>{{ $item->product_title }}</td>
                     <td>{{ $item->sku }}</td>
                     <td class="text-right">{{ $item->quantity }}</td>
-                    <td class="text-right">Rs. {{ number_format($item->price, 2) }}</td>
-                    <td class="text-right">Rs. {{ number_format($item->subtotal, 2) }}</td>
+                    <td class="text-right">₹{{ number_format($item->price, 2) }}</td>
+                    <td class="text-right">₹{{ number_format($item->subtotal, 2) }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -68,27 +69,27 @@
     <table class="totals" style="width: 260px; margin-left: auto;">
         <tr>
             <td class="label">Subtotal</td>
-            <td class="text-right">Rs. {{ number_format($order->subtotal, 2) }}</td>
+            <td class="text-right">₹{{ number_format($order->subtotal, 2) }}</td>
         </tr>
         @if($order->discount_amount > 0)
             <tr>
                 <td class="label">Discount{{ $order->coupon_code ? " ({$order->coupon_code})" : '' }}</td>
-                <td class="text-right">&minus; Rs. {{ number_format($order->discount_amount, 2) }}</td>
+                <td class="text-right">&minus; ₹{{ number_format($order->discount_amount, 2) }}</td>
             </tr>
         @endif
         <tr>
             <td class="label">Shipping</td>
-            <td class="text-right">Rs. {{ number_format($order->shipping_fee, 2) }}</td>
+            <td class="text-right">₹{{ number_format($order->shipping_fee, 2) }}</td>
         </tr>
         @if($order->refunded_amount > 0)
             <tr>
                 <td class="label">Refunded</td>
-                <td class="text-right">&minus; Rs. {{ number_format($order->refunded_amount, 2) }}</td>
+                <td class="text-right">&minus; ₹{{ number_format($order->refunded_amount, 2) }}</td>
             </tr>
         @endif
         <tr class="grand">
             <td class="label">Total</td>
-            <td class="text-right">Rs. {{ number_format($order->total, 2) }}</td>
+            <td class="text-right">₹{{ number_format($order->total, 2) }}</td>
         </tr>
     </table>
 

@@ -31,10 +31,10 @@ class ProductsTable
                     ->badge()
                     ->label('Categories'),
                 TextColumn::make('price')
-                    ->money()
+                    ->money('inr')
                     ->sortable(),
                 TextColumn::make('compare_at_price')
-                    ->money()
+                    ->money('inr')
                     ->sortable(),
                 TextColumn::make('stock_quantity')
                     ->numeric()

@@ -60,6 +60,7 @@ class OrdersTable
                     ->badge()
                     ->color(fn (string $state) => match ($state) {
                         'placed' => 'info',
+                        'accepted' => 'warning',
                         'packed' => 'warning',
                         'shipped' => 'primary',
                         'delivered' => 'success',
@@ -95,6 +96,7 @@ class OrdersTable
                 SelectFilter::make('status')
                     ->options([
                         'placed' => 'Placed',
+                        'accepted' => 'Accepted',
                         'packed' => 'Packed',
                         'shipped' => 'Shipped',
                         'delivered' => 'Delivered',
@@ -123,6 +125,9 @@ class OrdersTable
                     ->color('gray')
                     ->iconButton()
                     ->tooltip('Download invoice')
+                    // Only once the admin has accepted the order — matches the
+                    // "accepted" transition that also triggers the customer email.
+                    ->visible(fn (Order $record) => $record->status !== 'placed')
                     ->action(fn (Order $record) => self::streamInvoice($record)),
                 EditAction::make()
                     ->iconButton()

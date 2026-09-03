@@ -21,6 +21,11 @@ class Product extends Model implements HasMedia
         $this->addMediaCollection('gallery')
             ->useDisk('original_images')
             ->storeConversionsOnDisk('public');
+
+        $this->addMediaCollection('video')
+            ->useDisk('original_images')
+            ->acceptsMimeTypes(['video/mp4', 'video/webm'])
+            ->singleFile();
     }
 
     public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void

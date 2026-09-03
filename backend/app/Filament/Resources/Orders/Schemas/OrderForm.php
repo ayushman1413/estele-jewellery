@@ -15,6 +15,7 @@ class OrderForm
 {
     public const STATUS_LABELS = [
         'placed' => 'Placed',
+        'accepted' => 'Accepted',
         'packed' => 'Packed',
         'shipped' => 'Shipped',
         'delivered' => 'Delivered',
@@ -66,7 +67,7 @@ class OrderForm
 
                 Section::make('Fulfilment')
                     ->columns(2)
-                    ->visible(fn (Get $get) => in_array($get('status'), ['packed', 'shipped', 'delivered', 'returned']))
+                    ->visible(fn (Get $get) => in_array($get('status'), ['accepted', 'packed', 'shipped', 'delivered', 'returned']))
                     ->schema([
                         TextInput::make('tracking_number')
                             ->maxLength(255)

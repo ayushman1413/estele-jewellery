@@ -4,6 +4,8 @@ namespace App\Filament\Widgets;
 
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\Review;
+use App\Models\User;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -11,6 +13,18 @@ use Illuminate\Support\Carbon;
 
 class StoreStatsWidget extends StatsOverviewWidget
 {
+    /**
+     * Thin public wrapper around the protected getStats() so feature tests
+     * can assert the computed values directly (Filament widgets aren't
+     * otherwise easy to render headlessly in a test).
+     *
+     * @return Stat[]
+     */
+    public function getStatsForTest(): array
+    {
+        return $this->getStats();
+    }
+
     protected function getStats(): array
     {
         $periodStart = now()->subDays(30);
@@ -39,8 +53,8 @@ class StoreStatsWidget extends StatsOverviewWidget
                 label: 'Pending Orders',
                 icon: Heroicon::OutlinedClock,
                 color: 'warning',
-                current: Order::whereBetween('created_at', [$periodStart, now()])->whereIn('status', ['placed', 'packed'])->count(),
-                previous: Order::whereBetween('created_at', [$previousStart, $previousEnd])->whereIn('status', ['placed', 'packed'])->count(),
+                current: Order::whereBetween('created_at', [$periodStart, now()])->whereIn('status', ['placed', 'accepted', 'packed'])->count(),
+                previous: Order::whereBetween('created_at', [$previousStart, $previousEnd])->whereIn('status', ['placed', 'accepted', 'packed'])->count(),
             ),
 
             $this->makeStat(
@@ -57,6 +71,23 @@ class StoreStatsWidget extends StatsOverviewWidget
                 color: 'danger',
                 current: $this->abandonedCartsCount($periodStart, now()),
                 previous: $this->abandonedCartsCount($previousStart, $previousEnd),
+            ),
+
+            $this->makeStat(
+                label: 'Total Reviews',
+                icon: Heroicon::OutlinedStar,
+                color: 'warning',
+                current: Review::whereBetween('created_at', [$periodStart, now()])->count(),
+                previous: Review::whereBetween('created_at', [$previousStart, $previousEnd])->count(),
+            ),
+
+            $this->makeStat(
+                label: 'Total Customers',
+                icon: Heroicon::OutlinedUsers,
+                color: 'info',
+                // "Customer" = a user with no admin-panel role (see User::canAccessPanel()).
+                current: User::doesntHave('roles')->whereBetween('created_at', [$periodStart, now()])->count(),
+                previous: User::doesntHave('roles')->whereBetween('created_at', [$previousStart, $previousEnd])->count(),
             ),
         ];
     }

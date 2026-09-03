@@ -34,7 +34,7 @@ class BannerForm
                     ->collection('image')
                     ->conversion('desktop')
                     ->image()
-                    ->maxSize(10240) // 10MB - Phase 6 audit, was unlimited
+                    ->maxSize(1024) // 1MB
                     ->required()
                     ->helperText('Shown on tablet/desktop widths. Used as the mobile fallback too if no Mobile Banner is uploaded below.')
                     ->columnSpanFull(),
@@ -43,7 +43,7 @@ class BannerForm
                     ->collection('mobile_image')
                     ->conversion('mobile')
                     ->image()
-                    ->maxSize(10240)
+                    ->maxSize(1024) // 1MB
                     ->helperText('Optional — upload a separately cropped/composed image for mobile widths. Falls back to the Desktop Banner if left empty.')
                     ->columnSpanFull(),
                 TextInput::make('image_alt_text')
