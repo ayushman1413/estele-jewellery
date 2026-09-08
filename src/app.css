@@ -232,23 +232,11 @@
     .cat-tile:hover .cat-tile__img { transform: none; }
   }
 
-  /* ---- Explore-more grid: caps a product/collection grid to 4 rows at
-     each breakpoint's column count (2/3/4/5 cols -> 8/12/16/20 items),
-     matching the grid-cols-* classes on the same element. "Explore more"
+  /* ---- Explore-more grid: caps a product/collection grid to 4 rows on
+     mobile only (grid-cols-2 there -> 8 items). sm+ shows everything since
+     more columns already fit the same items in fewer rows. "Explore more"
      removes the cap in place instead of paginating. ---- */
-  .explore-grid-4row > :nth-child(n+9) { @apply hidden; }
-  @media (min-width: 640px) {
-    .explore-grid-4row > :nth-child(n+9) { display: revert; }
-    .explore-grid-4row > :nth-child(n+13) { @apply hidden; }
-  }
-  @media (min-width: 768px) {
-    .explore-grid-4row > :nth-child(n+13) { display: revert; }
-    .explore-grid-4row > :nth-child(n+17) { @apply hidden; }
-  }
-  @media (min-width: 1024px) {
-    .explore-grid-4row > :nth-child(n+17) { display: revert; }
-    .explore-grid-4row > :nth-child(n+21) { @apply hidden; }
-  }
+  .explore-grid-4row > :nth-child(n+9) { @apply hidden sm:block; }
   .explore-grid-4row.is-expanded > * { display: revert !important; }
 
   /* ---- Section heading: serif title with a short gold rule under it ---- */

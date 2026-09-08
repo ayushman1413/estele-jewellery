@@ -27,7 +27,7 @@
         @endforeach
         </div>
         @if($collections->count() > 8)
-          <div class="mt-5 text-center md:mt-7">
+          <div class="mt-5 text-center sm:hidden">
             <button type="button" class="inline-flex items-center border-b border-gold pb-1 text-[12px] font-medium uppercase tracking-[0.14em] text-heading transition-colors hover:text-gold" data-explore-toggle data-more-label="Explore more" data-less-label="Show less" aria-expanded="false">Explore more</button>
           </div>
         @endif
