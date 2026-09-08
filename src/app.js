@@ -1475,6 +1475,22 @@ import './app.css';
   })();
 
   /* ------------------------------------------------------------------------
+     EXPLORE MORE — grids capped to 4 rows (via CSS nth-child per breakpoint)
+     expand in place on click instead of paginating.
+     ---------------------------------------------------------------------- */
+  $$('[data-explore]').forEach(function (wrap) {
+    var btn = $('[data-explore-toggle]', wrap);
+    var grid = $('[data-explore-grid]', wrap);
+    if (!btn || !grid) return;
+
+    btn.addEventListener('click', function () {
+      var expanded = grid.classList.toggle('is-expanded');
+      btn.textContent = expanded ? (btn.dataset.lessLabel || 'Show less') : (btn.dataset.moreLabel || 'Explore more');
+      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+  });
+
+  /* ------------------------------------------------------------------------
      ACTIVE NAV — highlight the current page in the mobile bottom tab bar
      ---------------------------------------------------------------------- */
   (function () {
