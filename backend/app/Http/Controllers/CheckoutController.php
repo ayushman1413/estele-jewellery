@@ -279,7 +279,8 @@ class CheckoutController extends Controller
                         // \DomainExceptions below use. Re-thrown as \RuntimeException so
                         // the outer catch can tell the two apart.
                         try {
-                            $this->wallet->debit(auth()->user(), $walletAmountUsed, 'order_payment', $order);
+                            app(\App\Services\OldJewellery\OldJewelleryWalletSpendService::class)
+                                ->applySpend(auth()->user(), $walletAmountUsed, $order);
                         } catch (\DomainException $e) {
                             throw new \RuntimeException($e->getMessage(), previous: $e);
                         }
