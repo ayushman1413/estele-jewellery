@@ -29,7 +29,7 @@ class CustomerApiTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.status', 'vendors_notified');
+            ->assertJsonPath('data.status', 'bidding_active');
 
         $this->assertDatabaseCount('old_jewellery_vendor_invitations', 1);
     }
