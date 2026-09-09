@@ -64,6 +64,16 @@ class VendorApiTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_vendor_cannot_accept_with_amount_above_ceiling(): void
+    {
+        $this->makeInvitation();
+
+        $response = $this->postJson('/api/v1/vendor/old-jewellery/vendor-token/accept', ['amount' => 1000001]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseMissing('old_jewellery_bids', ['amount' => '1000001.00']);
+    }
+
     public function test_vendor_can_decline(): void
     {
         $this->makeInvitation();

@@ -16,6 +16,15 @@ use Illuminate\Support\Facades\DB;
  */
 class OldJewelleryBiddingService
 {
+    /**
+     * Backstop ceiling for any bid amount (₹10 lakh). This feature
+     * auto-credits 90% of the winning bid to a real customer wallet with
+     * zero human approval step, so this service — the source of truth for
+     * every caller, HTTP or otherwise — must enforce this independently of
+     * the Form Request validation layer.
+     */
+    public const MAX_BID_AMOUNT = 1000000.0;
+
     public function findInvitationByToken(string $plaintextToken): ?OldJewelleryVendorInvitation
     {
         $hash = app(VendorInvitationService::class)->hashToken($plaintextToken);
@@ -27,6 +36,10 @@ class OldJewelleryBiddingService
     {
         if ($amount <= 0) {
             throw new \DomainException('Bid amount must be positive.');
+        }
+
+        if ($amount > self::MAX_BID_AMOUNT) {
+            throw new \DomainException('Bid amount exceeds the maximum allowed.');
         }
 
         return DB::transaction(function () use ($invitation, $amount) {
@@ -101,6 +114,10 @@ class OldJewelleryBiddingService
     {
         if ($amount <= 0) {
             throw new \DomainException('Bid amount must be positive.');
+        }
+
+        if ($amount > self::MAX_BID_AMOUNT) {
+            throw new \DomainException('Bid amount exceeds the maximum allowed.');
         }
 
         return DB::transaction(function () use ($request, $admin, $amount) {

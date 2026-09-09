@@ -14,7 +14,7 @@ class AdminSubmitBidRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'gt:0'],
+            'amount' => ['required', 'numeric', 'gt:0', 'max:1000000'],
         ];
     }
 }

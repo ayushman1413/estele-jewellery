@@ -129,4 +129,32 @@ class OldJewelleryBiddingServiceTest extends TestCase
 
         app(OldJewelleryBiddingService::class)->submitAdminBid($request, $admin, 950);
     }
+
+    public function test_accept_rejects_amount_above_ceiling(): void
+    {
+        [, , $invitation] = $this->makeRequestWithInvitation();
+
+        $this->expectException(\DomainException::class);
+
+        app(OldJewelleryBiddingService::class)->accept($invitation, 1000001);
+    }
+
+    public function test_accept_allows_amount_at_ceiling(): void
+    {
+        [, , $invitation] = $this->makeRequestWithInvitation();
+
+        $bid = app(OldJewelleryBiddingService::class)->accept($invitation, 1000000);
+
+        $this->assertSame('1000000.00', $bid->amount);
+    }
+
+    public function test_admin_bid_rejected_above_ceiling(): void
+    {
+        [$request] = $this->makeRequestWithInvitation();
+        $admin = User::factory()->create();
+
+        $this->expectException(\DomainException::class);
+
+        app(OldJewelleryBiddingService::class)->submitAdminBid($request, $admin, 1000001);
+    }
 }
