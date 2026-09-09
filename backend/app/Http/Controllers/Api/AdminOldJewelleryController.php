@@ -68,7 +68,7 @@ class AdminOldJewelleryController extends ApiController
     {
         Gate::authorize('manageAsAdmin', OldJewelleryRequest::class);
 
-        $result = $this->closingService->close($oldJewelleryRequest);
+        $result = $this->closingService->close($oldJewelleryRequest, force: true);
 
         return $this->success(new OldJewelleryAdminResource($result), 'Closing processed.');
     }

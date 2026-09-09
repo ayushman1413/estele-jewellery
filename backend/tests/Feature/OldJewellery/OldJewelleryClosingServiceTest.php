@@ -156,4 +156,42 @@ class OldJewelleryClosingServiceTest extends TestCase
 
         $this->assertSame('submitted', $result->status);
     }
+
+    public function test_force_close_before_deadline_closes_and_selects_winner(): void
+    {
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create(['wallet_balance' => 0])->id,
+            'request_number' => 'OJ-2026-000043',
+            'status' => 'bidding_active',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+
+        $winning = OldJewelleryBid::create([
+            'old_jewellery_request_id' => $request->id,
+            'bidder_type' => 'vendor',
+            'amount' => 700,
+            'submitted_at' => now(),
+        ]);
+
+        $result = app(OldJewelleryClosingService::class)->close($request, force: true);
+
+        $this->assertSame('wallet_credited', $result->status);
+        $this->assertSame($winning->id, $result->winning_bid_id);
+    }
+
+    public function test_force_close_on_already_closed_request_is_a_safe_no_op(): void
+    {
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
+            'request_number' => 'OJ-2026-000044',
+            'status' => 'bidding_closed',
+            'bidding_start_at' => now()->subHours(3),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+
+        $result = app(OldJewelleryClosingService::class)->close($request, force: true);
+
+        $this->assertSame('bidding_closed', $result->status);
+    }
 }

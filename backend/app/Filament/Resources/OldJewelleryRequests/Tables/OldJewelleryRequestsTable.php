@@ -85,7 +85,7 @@ class OldJewelleryRequestsTable
             ->requiresConfirmation()
             ->visible(fn (OldJewelleryRequest $record) => $record->status === 'bidding_active')
             ->action(function (OldJewelleryRequest $record) {
-                $result = app(OldJewelleryClosingService::class)->close($record);
+                $result = app(OldJewelleryClosingService::class)->close($record, force: true);
 
                 Notification::make()->title("Request is now: {$result->status}")->success()->send();
             });

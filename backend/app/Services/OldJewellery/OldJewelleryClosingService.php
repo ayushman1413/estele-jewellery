@@ -17,13 +17,18 @@ class OldJewelleryClosingService
      * call always finds the row already moved past 'bidding_active' and
      * returns without any further effect — no separate "already closed"
      * flag is needed.
+     *
+     * $force skips ONLY the now() >= bidding_end_at deadline check (for an
+     * admin-triggered "close bidding now"). It never skips the
+     * status === 'bidding_active' check — that's what keeps a second
+     * force-close call, or an overlap with the scheduled job, a safe no-op.
      */
-    public function close(OldJewelleryRequest $request): OldJewelleryRequest
+    public function close(OldJewelleryRequest $request, bool $force = false): OldJewelleryRequest
     {
-        return DB::transaction(function () use ($request) {
+        return DB::transaction(function () use ($request, $force) {
             $locked = OldJewelleryRequest::whereKey($request->id)->lockForUpdate()->first();
 
-            if ($locked->status !== 'bidding_active' || now()->lessThan($locked->bidding_end_at)) {
+            if ($locked->status !== 'bidding_active' || (! $force && now()->lessThan($locked->bidding_end_at))) {
                 return $locked;
             }
 

@@ -45,6 +45,25 @@ class AdminApiTest extends TestCase
         $this->assertDatabaseHas('old_jewellery_bids', ['bidder_type' => 'admin', 'amount' => '950.00']);
     }
 
+    public function test_admin_cannot_submit_bid_above_ceiling(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
+            'request_number' => 'OJ-2026-000105',
+            'status' => 'vendors_notified',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/old-jewellery/{$request->request_number}/bid", ['amount' => 1000001]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseMissing('old_jewellery_bids', ['amount' => '1000001.00']);
+    }
+
     public function test_non_admin_is_forbidden(): void
     {
         $user = User::factory()->create();
@@ -86,6 +105,32 @@ class AdminApiTest extends TestCase
             ->postJson("/api/v1/admin/old-jewellery/{$request->request_number}/close");
 
         $response->assertOk()->assertJsonPath('data.status', 'wallet_credited');
+    }
+
+    public function test_admin_close_before_deadline_still_force_closes(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create(['wallet_balance' => 0])->id,
+            'request_number' => 'OJ-2026-000104',
+            'status' => 'bidding_active',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+
+        OldJewelleryBid::create([
+            'old_jewellery_request_id' => $request->id,
+            'bidder_type' => 'vendor',
+            'amount' => 700,
+            'submitted_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/old-jewellery/{$request->request_number}/close");
+
+        $response->assertOk()->assertJsonPath('data.status', 'wallet_credited');
+        $this->assertSame('wallet_credited', $request->fresh()->status);
     }
 
     public function test_admin_bid_after_deadline_returns_409(): void
