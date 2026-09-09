@@ -68,6 +68,16 @@ return [
         'driver' => env('SMS_DRIVER'),
     ],
 
+    // WhatsApp Business API provider for vendor/customer old-jewellery
+    // notifications. Leave WHATSAPP_PROVIDER unset to stay on LogWhatsAppGateway
+    // (messages logged, not sent) — see App\Services\WhatsApp\LogWhatsAppGateway.
+    'whatsapp' => [
+        'provider' => env('WHATSAPP_PROVIDER'),
+        'api_key' => env('WHATSAPP_API_KEY'),
+        'api_url' => env('WHATSAPP_API_URL'),
+        'from_number' => env('WHATSAPP_FROM_NUMBER'),
+    ],
+
     // Alternative OTP gateway (App\Services\Otp\TwilioOtpGateway) — added
     // alongside VAS Multimedia after VAS's real submissions kept coming back
     // "SUCCESS" from the API but never actually reaching a phone across

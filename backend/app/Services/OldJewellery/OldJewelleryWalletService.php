@@ -5,8 +5,10 @@ namespace App\Services\OldJewellery;
 use App\Models\OldJewelleryActivityLog;
 use App\Models\OldJewelleryRequest;
 use App\Models\OldJewelleryWalletCredit;
+use App\Notifications\CustomerOldJewelleryFinalized;
 use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class OldJewelleryWalletService
 {
@@ -34,7 +36,7 @@ class OldJewelleryWalletService
             return null;
         }
 
-        return DB::transaction(function () use ($request) {
+        $credit = DB::transaction(function () use ($request) {
             $locked = OldJewelleryRequest::whereKey($request->id)->lockForUpdate()->first();
 
             // Re-check inside the lock: another process may have credited
@@ -98,5 +100,11 @@ class OldJewelleryWalletService
 
             return $credit;
         });
+
+        if ($credit) {
+            Notification::send($credit->user, new CustomerOldJewelleryFinalized($credit->load('request')));
+        }
+
+        return $credit;
     }
 }

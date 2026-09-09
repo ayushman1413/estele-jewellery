@@ -5,10 +5,15 @@ namespace App\Services\OldJewellery;
 use App\Models\OldJewelleryActivityLog;
 use App\Models\OldJewelleryRequest;
 use App\Models\OldJewelleryVendorInvitation;
+use App\Models\User;
 use App\Models\Vendor;
+use App\Notifications\AdminNewOldJewelleryRequest;
+use App\Notifications\VendorInvitedToBid;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class VendorInvitationService
 {
@@ -28,7 +33,7 @@ class VendorInvitationService
      */
     public function inviteAll(OldJewelleryRequest $request): Collection
     {
-        return DB::transaction(function () use ($request) {
+        $results = DB::transaction(function () use ($request) {
             $locked = OldJewelleryRequest::whereKey($request->id)->lockForUpdate()->first();
 
             if ($locked->invitations()->exists()) {
@@ -37,7 +42,7 @@ class VendorInvitationService
 
             $vendors = Vendor::where('is_active', true)->get();
 
-            $results = $vendors->map(function (Vendor $vendor) use ($locked) {
+            $created = $vendors->map(function (Vendor $vendor) use ($locked) {
                 $plaintext = Str::random(64);
 
                 $invitation = OldJewelleryVendorInvitation::create([
@@ -51,7 +56,7 @@ class VendorInvitationService
                 return ['invitation' => $invitation, 'plaintext_token' => $plaintext];
             });
 
-            if ($results->isNotEmpty()) {
+            if ($created->isNotEmpty()) {
                 $locked->update(['status' => 'vendors_notified']);
 
                 OldJewelleryActivityLog::create([
@@ -60,12 +65,32 @@ class VendorInvitationService
                     'action' => 'vendors_notified',
                     'from_status' => 'submitted',
                     'to_status' => 'vendors_notified',
-                    'metadata' => ['vendor_count' => $results->count()],
+                    'metadata' => ['vendor_count' => $created->count()],
                 ]);
             }
 
-            return $results;
+            return $created;
         });
+
+        // Notification dispatch happens outside the DB transaction: a mail/queue
+        // failure here must never roll back the invitation rows that were just
+        // committed (same "separate business transaction from notification
+        // delivery" reasoning as WalletService::credit()'s own placement).
+        foreach ($results as $result) {
+            Notification::route('mail', $result['invitation']->vendor->email)
+                ->notify(new VendorInvitedToBid($result['invitation'], $result['plaintext_token']));
+        }
+
+        // Guard against an unseeded super_admin role (fresh/test environments
+        // before ShieldSeeder runs): User::role() throws RoleDoesNotExist
+        // otherwise, which would incorrectly block the vendor notifications
+        // above even though they already succeeded.
+        if ($results->isNotEmpty() && Role::where(['name' => 'super_admin', 'guard_name' => 'web'])->exists()) {
+            $admins = User::role('super_admin')->whereNotNull('email')->get();
+            Notification::send($admins, new AdminNewOldJewelleryRequest($request->fresh()));
+        }
+
+        return $results;
     }
 
     public function hashToken(string $plaintext): string
