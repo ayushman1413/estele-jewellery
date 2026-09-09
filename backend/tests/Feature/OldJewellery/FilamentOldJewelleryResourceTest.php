@@ -24,4 +24,15 @@ class FilamentOldJewelleryResourceTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_user_without_permission_is_forbidden(): void
+    {
+        $user = User::factory()->create();
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $user->assignRole('super_admin'); // has the panel-access role but zero permissions synced
+
+        $response = $this->actingAs($user)->get('/admin/old-jewellery-requests');
+
+        $response->assertForbidden();
+    }
 }
