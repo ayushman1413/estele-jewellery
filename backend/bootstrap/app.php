@@ -12,6 +12,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -51,6 +52,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return route('login');
         });
+
+        // Vendors have no login/session — this alias is their entire
+        // authorization boundary for token-link API access (see
+        // App\Http\Middleware\VendorTokenAuth).
+        $middleware->alias([
+            'vendor.token' => \App\Http\Middleware\VendorTokenAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
