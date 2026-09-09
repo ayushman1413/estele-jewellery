@@ -101,7 +101,13 @@ class OldJewelleryWalletService
             return $credit;
         });
 
-        if ($credit) {
+        // wasRecentlyCreated is true only for a row this call just inserted
+        // via ::create() above — false for one returned by the inner
+        // re-check's early return (a concurrent/overlapping call that lost
+        // the race to an already-existing credit). Gating on mere truthiness
+        // of $credit would re-notify the customer on every idempotent call,
+        // not just the one that actually created the credit.
+        if ($credit && $credit->wasRecentlyCreated) {
             Notification::send($credit->user, new CustomerOldJewelleryFinalized($credit->load('request')));
         }
 
