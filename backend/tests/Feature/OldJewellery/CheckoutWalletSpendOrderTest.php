@@ -82,12 +82,44 @@ class CheckoutWalletSpendOrderTest extends TestCase
             'payment_method' => 'cod', 'payment_status' => 'pending', 'status' => 'placed',
         ]);
 
+        $credit = OldJewelleryWalletCredit::where('user_id', $user->id)->first();
+
         app(OldJewelleryWalletSpendService::class)->applySpend($user, 400, $order);
 
         $this->assertSame('100.00', $user->fresh()->wallet_balance);
         $this->assertDatabaseHas('wallet_transactions', [
             'user_id' => $user->id, 'type' => 'debit', 'amount' => '400.00',
         ]);
+        $this->assertSame('0.00', $credit->fresh()->remaining_amount);
+        $this->assertSame('used', $credit->fresh()->status);
+    }
+
+    public function test_credit_expired_but_not_yet_swept_is_not_spendable(): void
+    {
+        // Simulates the window between a credit's expires_at passing and the
+        // daily ExpireOldJewelleryWalletCreditsJob sweep actually running:
+        // status is still 'active' even though expires_at is already past.
+        $user = User::factory()->create(['wallet_balance' => 200]);
+        $unswept = $this->makeCredit($user, 200, now()->subHour());
+
+        $order = Order::create([
+            'order_number' => 'ORD-TEST-SPEND-4',
+            'customer_name' => 'T', 'customer_email' => 't@example.com', 'customer_phone' => '9999999999',
+            'shipping_address_line1' => 'x', 'shipping_city' => 'x', 'shipping_state' => 'x', 'shipping_postal_code' => '500001', 'shipping_country' => 'India',
+            'subtotal' => 100, 'discount_amount' => 0, 'shipping_fee' => 0, 'total' => 100,
+            'payment_method' => 'cod', 'payment_status' => 'pending', 'status' => 'placed',
+        ]);
+
+        // wallet_balance (200) is still sufficient to cover the 100 debit
+        // even excluding the expired credit, so the debit itself succeeds —
+        // the point of this test is that the un-swept expired credit row is
+        // never consumed to satisfy it (it should be left untouched for the
+        // daily sweep job to expire).
+        app(OldJewelleryWalletSpendService::class)->applySpend($user, 100, $order);
+
+        $this->assertSame('100.00', $user->fresh()->wallet_balance);
+        $this->assertSame('200.00', $unswept->fresh()->remaining_amount);
+        $this->assertSame('active', $unswept->fresh()->status);
     }
 
     public function test_expired_credits_are_never_spent(): void
@@ -111,5 +143,48 @@ class CheckoutWalletSpendOrderTest extends TestCase
 
         $this->assertSame('200.00', $expired->fresh()->remaining_amount);
         $this->assertSame('expired', $expired->fresh()->status);
+    }
+
+    public function test_request_transitions_to_completed_when_credit_fully_spent(): void
+    {
+        $user = User::factory()->create(['wallet_balance' => 200]);
+        $credit = $this->makeCredit($user, 200, now()->addDays(2));
+
+        $order = Order::create([
+            'order_number' => 'ORD-TEST-SPEND-5',
+            'customer_name' => 'T', 'customer_email' => 't@example.com', 'customer_phone' => '9999999999',
+            'shipping_address_line1' => 'x', 'shipping_city' => 'x', 'shipping_state' => 'x', 'shipping_postal_code' => '500001', 'shipping_country' => 'India',
+            'subtotal' => 200, 'discount_amount' => 0, 'shipping_fee' => 0, 'total' => 200,
+            'payment_method' => 'cod', 'payment_status' => 'pending', 'status' => 'placed',
+        ]);
+
+        app(OldJewelleryWalletSpendService::class)->applySpend($user, 200, $order);
+
+        $this->assertSame('used', $credit->fresh()->status);
+        $this->assertSame('completed', $credit->fresh()->request->status);
+        $this->assertDatabaseHas('old_jewellery_activity_logs', [
+            'old_jewellery_request_id' => $credit->old_jewellery_request_id,
+            'action' => 'wallet_spent_completed',
+            'to_status' => 'completed',
+        ]);
+    }
+
+    public function test_request_stays_wallet_credited_on_partial_spend(): void
+    {
+        $user = User::factory()->create(['wallet_balance' => 200]);
+        $credit = $this->makeCredit($user, 200, now()->addDays(2));
+
+        $order = Order::create([
+            'order_number' => 'ORD-TEST-SPEND-6',
+            'customer_name' => 'T', 'customer_email' => 't@example.com', 'customer_phone' => '9999999999',
+            'shipping_address_line1' => 'x', 'shipping_city' => 'x', 'shipping_state' => 'x', 'shipping_postal_code' => '500001', 'shipping_country' => 'India',
+            'subtotal' => 50, 'discount_amount' => 0, 'shipping_fee' => 0, 'total' => 50,
+            'payment_method' => 'cod', 'payment_status' => 'pending', 'status' => 'placed',
+        ]);
+
+        app(OldJewelleryWalletSpendService::class)->applySpend($user, 50, $order);
+
+        $this->assertSame('partially_used', $credit->fresh()->status);
+        $this->assertSame('wallet_credited', $credit->fresh()->request->status);
     }
 }

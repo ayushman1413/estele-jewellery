@@ -2,6 +2,8 @@
 
 namespace App\Services\OldJewellery;
 
+use App\Models\OldJewelleryActivityLog;
+use App\Models\OldJewelleryRequest;
 use App\Models\OldJewelleryWalletCredit;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -31,6 +33,7 @@ class OldJewelleryWalletSpendService
             $credits = OldJewelleryWalletCredit::where('user_id', $user->id)
                 ->whereIn('status', ['active', 'partially_used'])
                 ->where('remaining_amount', '>', 0)
+                ->where('expires_at', '>', now())
                 ->orderBy('expires_at')
                 ->lockForUpdate()
                 ->get();
@@ -47,6 +50,24 @@ class OldJewelleryWalletSpendService
                     'remaining_amount' => $newRemaining,
                     'status' => $newRemaining <= 0 ? 'used' : 'partially_used',
                 ]);
+
+                if ($newRemaining <= 0) {
+                    $creditRequest = OldJewelleryRequest::whereKey($credit->old_jewellery_request_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($creditRequest && $creditRequest->status === 'wallet_credited') {
+                        $creditRequest->update(['status' => 'completed']);
+
+                        OldJewelleryActivityLog::create([
+                            'old_jewellery_request_id' => $creditRequest->id,
+                            'actor_type' => 'system',
+                            'action' => 'wallet_spent_completed',
+                            'from_status' => 'wallet_credited',
+                            'to_status' => 'completed',
+                        ]);
+                    }
+                }
 
                 $remainingToConsume = round($remainingToConsume - $consume, 2);
             }
