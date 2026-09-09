@@ -14,6 +14,7 @@ use App\Models\FaqCategory;
 use App\Models\HomepageBlock;
 use App\Models\HomepageBlockItem;
 use App\Models\Offer;
+use App\Models\OldJewelleryRequest;
 use App\Models\Popup;
 use App\Models\Product;
 use App\Models\Review;
@@ -36,6 +37,7 @@ use App\Observers\ProductObserver;
 use App\Observers\ReviewObserver;
 use App\Observers\SettingObserver;
 use App\Policies\CustomerPolicy;
+use App\Policies\OldJewelleryRequestPolicy;
 use App\View\Composers\SiteDataComposer;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Illuminate\Support\Facades\Gate;
@@ -65,6 +67,7 @@ class AppServiceProvider extends ServiceProvider
         // User) so it never gets tangled up with panel-staff auth or any
         // other resource that might key off App\Models\User later.
         Gate::policy(User::class, CustomerPolicy::class);
+        Gate::policy(OldJewelleryRequest::class, OldJewelleryRequestPolicy::class);
 
         View::composer('layouts.app', SiteDataComposer::class);
 

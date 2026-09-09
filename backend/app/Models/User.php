@@ -46,6 +46,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(RewardSubmission::class)->latest();
     }
 
+    public function oldJewelleryRequests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(OldJewelleryRequest::class);
+    }
+
+    public function oldJewelleryWalletCredits(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(OldJewelleryWalletCredit::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

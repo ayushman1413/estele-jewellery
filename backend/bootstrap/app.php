@@ -65,6 +65,22 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*'),
         );
 
+        // Every api/* FormRequest's automatic validation failure otherwise
+        // renders Laravel's default {message, errors} shape, which breaks
+        // the {success, message, errors} envelope every other api/* error
+        // path (ApiController::error(), VendorTokenAuth, ...) uses.
+        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], $e->status);
+        });
+
         // Redirect Manager (spec §5/§6 — "old URLs never 404 when slug
         // changes"). Registered for both exception types because a route
         // with a bound wildcard (e.g. /products/{product:slug}) matches the

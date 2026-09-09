@@ -280,4 +280,15 @@ Route::post('/payment/{order:order_number}/callback', [PaymentController::class,
     ->middleware('throttle:20,1');
 
 Route::post('/webhooks/razorpay', [PaymentController::class, 'webhook'])
-    ->name('webhooks.razorpay'); 
+    ->name('webhooks.razorpay');
+
+
+/*
+|--------------------------------------------------------------------------
+| Old Jewellery — Vendor Media (signed URL only, no session auth)
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/old-jewellery/vendor-video/{invitation}', [\App\Http\Controllers\VendorMediaController::class, 'video'])
+    ->name('old-jewellery.vendor.video')
+    ->middleware('signed'); 
