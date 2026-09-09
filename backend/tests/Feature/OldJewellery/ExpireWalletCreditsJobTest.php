@@ -98,4 +98,32 @@ class ExpireWalletCreditsJobTest extends TestCase
 
         $this->assertSame('0.00', $user->fresh()->wallet_balance);
     }
+
+    public function test_parent_request_transitions_to_wallet_expired(): void
+    {
+        $user = User::factory()->create(['wallet_balance' => 900]);
+        $credit = $this->makeCredit($user, 900, 'active', now()->subDay());
+
+        (new ExpireOldJewelleryWalletCreditsJob())->handle();
+
+        $this->assertSame('wallet_expired', $credit->fresh()->request->status);
+        $this->assertDatabaseHas('old_jewellery_activity_logs', [
+            'old_jewellery_request_id' => $credit->old_jewellery_request_id,
+            'action' => 'wallet_expired',
+            'from_status' => 'wallet_credited',
+            'to_status' => 'wallet_expired',
+        ]);
+    }
+
+    public function test_parent_request_not_touched_if_already_completed(): void
+    {
+        $user = User::factory()->create(['wallet_balance' => 0]);
+        $credit = $this->makeCredit($user, 0, 'used', now()->subDay());
+        $credit->request->update(['status' => 'completed']);
+
+        (new ExpireOldJewelleryWalletCreditsJob())->handle();
+
+        $this->assertSame('expired', $credit->fresh()->status);
+        $this->assertSame('completed', $credit->fresh()->request->status);
+    }
 }

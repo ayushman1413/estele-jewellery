@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\OldJewelleryActivityLog;
 use App\Models\OldJewelleryWalletCredit;
 use App\Services\WalletService;
 use Illuminate\Bus\Queueable;
@@ -9,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Idempotent via the query below: only rows still active/partially_used/used
@@ -39,6 +41,22 @@ class ExpireOldJewelleryWalletCreditsJob implements ShouldQueue
                 }
 
                 $credit->update(['status' => 'expired', 'remaining_amount' => 0]);
+
+                DB::transaction(function () use ($credit) {
+                    $request = $credit->request()->lockForUpdate()->first();
+
+                    if ($request && $request->status === 'wallet_credited') {
+                        $request->update(['status' => 'wallet_expired']);
+
+                        OldJewelleryActivityLog::create([
+                            'old_jewellery_request_id' => $request->id,
+                            'actor_type' => 'system',
+                            'action' => 'wallet_expired',
+                            'from_status' => 'wallet_credited',
+                            'to_status' => 'wallet_expired',
+                        ]);
+                    }
+                });
             });
     }
 }
