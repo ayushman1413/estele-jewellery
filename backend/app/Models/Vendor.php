@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 
 /**
  * A marketplace vendor who bids on old-jewellery requests. Vendors never log
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Vendor extends Model
 {
+    use Notifiable;
+
     protected $fillable = [
         'name',
         'company_name',
@@ -39,5 +42,15 @@ class Vendor extends Model
     public function bids(): HasMany
     {
         return $this->hasMany(OldJewelleryBid::class);
+    }
+
+    public function routeNotificationForMail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function routeNotificationForWhatsapp(): ?string
+    {
+        return $this->whatsapp_number;
     }
 }

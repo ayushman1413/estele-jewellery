@@ -11,6 +11,7 @@ use App\Notifications\AdminNewOldJewelleryRequest;
 use App\Notifications\VendorInvitedToBid;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -84,8 +85,20 @@ class VendorInvitationService
         // committed (same "separate business transaction from notification
         // delivery" reasoning as WalletService::credit()'s own placement).
         foreach ($results as $result) {
-            Notification::route('mail', $result['invitation']->vendor->email)
-                ->notify(new VendorInvitedToBid($result['invitation'], $result['plaintext_token']));
+            try {
+                $result['invitation']->vendor->notify(
+                    new VendorInvitedToBid($result['invitation'], $result['plaintext_token']),
+                );
+            } catch (\Throwable $e) {
+                // One bad address/transport failure must never abort
+                // notification delivery to the remaining vendors in this
+                // same batch.
+                Log::warning('Failed to notify vendor of old jewellery bid invitation.', [
+                    'vendor_id' => $result['invitation']->vendor_id,
+                    'old_jewellery_request_id' => $result['invitation']->old_jewellery_request_id,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
         }
 
         // Guard against an unseeded super_admin role (fresh/test environments

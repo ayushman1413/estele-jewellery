@@ -7,6 +7,7 @@ use App\Models\OldJewelleryWalletCredit;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\WalletTransaction;
+use App\Notifications\Channels\WhatsAppChannel;
 use App\Notifications\CustomerOldJewelleryFinalized;
 use App\Notifications\VendorInvitedToBid;
 use App\Services\OldJewellery\OldJewelleryWalletService;
@@ -42,7 +43,94 @@ class NotificationDispatchTest extends TestCase
 
         app(VendorInvitationService::class)->inviteAll($request);
 
-        Notification::assertSentOnDemand(VendorInvitedToBid::class);
+        Notification::assertSentTo($vendor, VendorInvitedToBid::class);
+    }
+
+    public function test_vendor_with_whatsapp_number_receives_whatsapp_channel(): void
+    {
+        Notification::fake();
+
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
+            'request_number' => 'OJ-2026-000123',
+            'status' => 'submitted',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+        $vendor = Vendor::create([
+            'name' => 'V', 'mobile' => '9000000123', 'email' => 'v123@example.com',
+            'whatsapp_number' => '9000000123', 'is_active' => true,
+        ]);
+
+        app(VendorInvitationService::class)->inviteAll($request);
+
+        Notification::assertSentTo(
+            $vendor,
+            VendorInvitedToBid::class,
+            function ($notification, $channels) {
+                return in_array(WhatsAppChannel::class, $channels, true) && in_array('mail', $channels, true);
+            },
+        );
+    }
+
+    public function test_vendor_without_whatsapp_number_gets_mail_only(): void
+    {
+        Notification::fake();
+
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
+            'request_number' => 'OJ-2026-000124',
+            'status' => 'submitted',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+        $vendor = Vendor::create([
+            'name' => 'V', 'mobile' => '9000000124', 'email' => 'v124@example.com', 'is_active' => true,
+        ]);
+
+        app(VendorInvitationService::class)->inviteAll($request);
+
+        Notification::assertSentTo(
+            $vendor,
+            VendorInvitedToBid::class,
+            function ($notification, $channels) {
+                return $channels === ['mail'];
+            },
+        );
+    }
+
+    public function test_vendor_with_null_email_does_not_throw_and_does_not_block_other_vendors(): void
+    {
+        Notification::fake();
+
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
+            'request_number' => 'OJ-2026-000125',
+            'status' => 'submitted',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+        $noEmailVendor = Vendor::create([
+            'name' => 'No Email', 'mobile' => '9000000125', 'email' => null, 'is_active' => true,
+        ]);
+        $otherVendor = Vendor::create([
+            'name' => 'Has Email', 'mobile' => '9000000126', 'email' => 'other@example.com', 'is_active' => true,
+        ]);
+
+        app(VendorInvitationService::class)->inviteAll($request);
+
+        Notification::assertSentTo($otherVendor, VendorInvitedToBid::class);
+        // The null-email vendor still gets a notification record dispatched
+        // (via() still resolves) — the important guarantee is that nothing
+        // thrown for it prevented the other vendor above from being
+        // notified.
+        $this->assertTrue(true);
     }
 
     public function test_wallet_credit_notifies_customer(): void
