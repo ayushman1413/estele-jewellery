@@ -21,7 +21,14 @@ class OldJewelleryRequest extends Model implements HasMedia
      */
     public const ALLOWED_TRANSITIONS = [
         'pending' => ['submitted', 'cancelled'],
-        'submitted' => ['vendors_notified', 'cancelled'],
+        // 'bidding_active' is reached directly from 'submitted' in the real
+        // flow — VendorInvitationService::inviteAll() notifies vendors and
+        // opens the bidding window in the same step, so there is no
+        // meaningful intermediate state between them. 'vendors_notified'
+        // stays a valid status value (referenced by existing test fixtures
+        // and still a legal target here) but inviteAll() no longer produces
+        // it as of the fix for the dead-letter bidding-close bug.
+        'submitted' => ['vendors_notified', 'bidding_active', 'cancelled'],
         'vendors_notified' => ['bidding_active', 'cancelled'],
         'bidding_active' => ['bidding_closed', 'cancelled'],
         'bidding_closed' => ['bid_selected', 'cancelled'],

@@ -57,14 +57,21 @@ class VendorInvitationService
             });
 
             if ($created->isNotEmpty()) {
-                $locked->update(['status' => 'vendors_notified']);
+                // Vendors being notified and the bidding window opening are
+                // the same real-world moment — go straight to 'bidding_active'
+                // so CloseExpiredOldJewelleryBiddingJob (which filters on
+                // status = 'bidding_active') can actually find this request
+                // once its bidding window expires. See
+                // OldJewelleryRequest::ALLOWED_TRANSITIONS for the transition
+                // map this relies on.
+                $locked->update(['status' => 'bidding_active']);
 
                 OldJewelleryActivityLog::create([
                     'old_jewellery_request_id' => $locked->id,
                     'actor_type' => 'system',
                     'action' => 'vendors_notified',
                     'from_status' => 'submitted',
-                    'to_status' => 'vendors_notified',
+                    'to_status' => 'bidding_active',
                     'metadata' => ['vendor_count' => $created->count()],
                 ]);
             }

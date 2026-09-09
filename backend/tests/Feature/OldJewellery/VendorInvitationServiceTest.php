@@ -35,7 +35,11 @@ class VendorInvitationServiceTest extends TestCase
 
         $this->assertCount(1, $results);
         $this->assertSame($active->id, $results->first()['invitation']->vendor_id);
-        $this->assertSame('vendors_notified', $request->fresh()->status);
+        // inviteAll() transitions straight to 'bidding_active' (not the
+        // intermediate 'vendors_notified') so that
+        // CloseExpiredOldJewelleryBiddingJob's status = 'bidding_active'
+        // filter actually matches this request once its bidding window ends.
+        $this->assertSame('bidding_active', $request->fresh()->status);
     }
 
     public function test_token_is_stored_only_as_a_hash(): void
