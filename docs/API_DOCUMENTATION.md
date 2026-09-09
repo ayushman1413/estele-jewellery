@@ -27,10 +27,12 @@ covered here except for completeness).
 1. **Customer submits a request.** They upload a required video (and
    optionally a photo + description) of the jewellery they want to sell.
    This creates an `OldJewelleryRequest` with status `pending`, which the
-   backend immediately advances to `submitted` and then `vendors_notified`
-   as it fires off invitations to every active vendor.
-2. **A 3-hour bidding window opens.** The instant vendors are notified, the
-   request moves to `bidding_active` and `bidding_end_at` is set to exactly
+   backend immediately advances to `submitted`, then invites every active
+   vendor and moves the request straight to `bidding_active` — the bidding
+   window is open the moment invitations go out. (`vendors_notified` is
+   logged as an activity-log *action*, not a resting request status — a
+   request never sits in a `vendors_notified` state; see the table below.)
+2. **A 3-hour bidding window opens.** `bidding_end_at` is set to exactly
    3 hours from creation. **Your frontend's job during this window**: show
    the customer a countdown to `bidding_end_at` and poll (or otherwise
    refresh) the status/detail endpoint so they see bids/responses arrive
@@ -46,7 +48,9 @@ covered here except for completeness).
    `bidding_end_at`, or an admin can force-close early). Status becomes
    `bidding_closed`, then the system picks a winner: the highest valid bid;
    ties go to whichever bid was submitted earliest. If nobody bid, the
-   request ends at `no_valid_bids` and nothing is credited.
+   request moves to `cancelled` and nothing is credited — see §8's note on
+   `cancelled` for how this differs from a customer/admin-initiated
+   cancellation.
 5. **Winning bid selected** (`bid_selected`) — `final_amount` is now set on
    the request to the winning bid amount.
 6. **Wallet credit is calculated and applied** (`wallet_pending` →
@@ -64,14 +68,15 @@ covered here except for completeness).
    that logic, just needs to show the balance and expiry correctly.
 8. **Terminal states**: `wallet_expired` (credit window passed unused —
    money is gone, this is a real outcome to design for in the UI),
-   `completed` (credit was used), `no_valid_bids`, or `cancelled` (can
-   happen at almost any stage).
+   `completed` (credit was used), or `cancelled` (can happen at almost any
+   stage — including the "no vendor bid" outcome in step 4 above; see the
+   note under `cancelled` in the table below).
 
 ### What the frontend needs to render at each stage
 
 | Request status | What the customer should see |
 |---|---|
-| `pending` / `submitted` / `vendors_notified` | "Submitting your request…" — brief, transitional |
+| `pending` / `submitted` | "Submitting your request…" — brief, transitional |
 | `bidding_active` | Countdown to `bidding_end_at`; "vendors are reviewing" |
 | `bidding_closed` | "Selecting the winning offer…" — brief, transitional |
 | `bid_selected` | Winning amount (`final_amount`) shown, payout in progress |
@@ -79,8 +84,15 @@ covered here except for completeness).
 | `wallet_credited` | Success: amount credited (`credited_amount`), expiry date |
 | `wallet_expired` | Credit expired unused — no longer spendable |
 | `completed` | Credit was used at checkout |
-| `no_valid_bids` | No vendor bid — request closed with no payout |
-| `cancelled` | Request was cancelled |
+| `cancelled` | Request was cancelled — **note**: this single status covers two different real cases: an explicit customer/admin cancellation, *and* bidding closing with no valid bids received. The API does not currently distinguish them in the `status` field — both read as `cancelled`. (Internally the no-bids case is recorded as a `no_valid_bids` entry in the request's activity log, but that log is not exposed on any customer-facing endpoint today, so the frontend cannot currently tell these two cases apart. If this distinction matters for messaging — e.g. "no offers were made" vs. "you cancelled this" — ask the backend to either expose the activity log or add a dedicated status/reason field.) |
+
+> `vendors_notified` and `no_valid_bids` are **not** request statuses —
+> `vendors_notified` is an activity-log action fired at the same moment a
+> request transitions `submitted → bidding_active`, and `no_valid_bids` is
+> an activity-log action fired when a request transitions
+> `bidding_closed → cancelled` with no valid bid. Neither ever appears as
+> the request's own `status` value; don't switch UI on them expecting a
+> match.
 
 Poll `GET /old-jewellery/requests/{request_number}/status` (lightweight) for
 the countdown/status-only view, and the full `show` endpoint when you need
@@ -158,7 +170,7 @@ Success (201):
   "message": "Old jewellery request created successfully.",
   "data": {
     "request_number": "OJ-2026-000123",
-    "status": "vendors_notified",
+    "status": "bidding_active",
     "bidding_start_at": "2026-09-09T10:00:00+00:00",
     "bidding_end_at": "2026-09-09T13:00:00+00:00",
     "final_amount": null,
@@ -235,8 +247,14 @@ plain `/wallet` balance endpoint above doesn't break out expiry per credit.
 }
 ```
 
-`status` will be `active`, `expired`, or `used` depending on whether the
-credit is still spendable, expired unused, or already spent.
+`status` will be one of:
+
+| Status | Meaning |
+|---|---|
+| `active` | Full credit still spendable, not yet used or expired |
+| `partially_used` | Some of the credit has been spent at checkout, some remains (`remaining_amount` < `credited_amount`) and is still spendable until it expires |
+| `used` | Fully spent (`remaining_amount` is `0`) |
+| `expired` | Expiry date passed with unspent remaining balance — no longer spendable |
 
 ## 6. Vendor Endpoints (token-authenticated, no bearer token)
 
@@ -365,10 +383,15 @@ request unchanged rather than erroring.
 - **Full request status lifecycle** (for reference — most of these are
   transient and won't be visible long enough to matter in the UI, see the
   table in §1):
-  `pending → submitted → vendors_notified → bidding_active → bidding_closed
-  → bid_selected → wallet_pending → wallet_credited → (wallet_expired |
-  completed)`, with `no_valid_bids` reachable from `bidding_closed` and
-  `cancelled` reachable from most non-terminal states.
+  `pending → submitted → bidding_active → bidding_closed → bid_selected →
+  wallet_pending → wallet_credited → (wallet_expired | completed)`, with
+  `cancelled` reachable from most non-terminal states — including from
+  `bidding_closed` when no valid bid was received (see the `cancelled` note
+  in §1's table for how that case differs from an explicit cancellation).
+  `vendors_notified` and `no_valid_bids` are activity-log actions, not
+  status values — they never appear in a request's `status` field.
+- **Wallet credit status enum**: `active`, `partially_used`, `used`,
+  `expired` — see §5 for what each means.
 
 ## 9. Environment variables
 
