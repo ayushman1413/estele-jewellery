@@ -16,6 +16,22 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+        $schedule->job(new \App\Jobs\CloseExpiredOldJewelleryBiddingJob())
+            ->everyFiveMinutes()
+            ->name('old-jewellery:close-expired-bidding')
+            ->withoutOverlapping();
+
+        $schedule->job(new \App\Jobs\ExpireOldJewelleryWalletCreditsJob())
+            ->daily()
+            ->name('old-jewellery:expire-wallet-credits')
+            ->withoutOverlapping();
+
+        $schedule->job(new \App\Jobs\SendOldJewelleryWalletReminderJob())
+            ->daily()
+            ->name('old-jewellery:wallet-expiry-reminders')
+            ->withoutOverlapping();
+    })
     ->withMiddleware(function (Middleware $middleware): void {
         // Railway (and similar PaaS hosts) terminate TLS at their edge proxy and
         // forward plain HTTP internally with X-Forwarded-Proto: https — without
