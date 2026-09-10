@@ -10,7 +10,14 @@ return new class extends Migration
     {
         Schema::create('old_jewellery_vendor_invitations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('old_jewellery_request_id')->constrained('old_jewellery_requests')->cascadeOnDelete();
+            // Explicit short constraint names: the auto-generated name
+            // ("old_jewellery_vendor_invitations_old_jewellery_request_id_foreign")
+            // exceeds MySQL/MariaDB's 64-character identifier limit. SQLite
+            // (used in the local/test suite) doesn't enforce this, so the
+            // default naming only failed once run against a real MySQL DB.
+            $table->foreignId('old_jewellery_request_id');
+            $table->foreign('old_jewellery_request_id', 'oj_invitations_request_fk')
+                ->references('id')->on('old_jewellery_requests')->cascadeOnDelete();
             $table->foreignId('vendor_id')->constrained('vendors')->cascadeOnDelete();
             $table->string('token_hash')->unique();
             $table->timestamp('expires_at');
