@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Vendors\Schemas;
 
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -17,6 +18,11 @@ class VendorForm
             TextInput::make('email')->email(),
             TextInput::make('whatsapp_number')->tel(),
             Toggle::make('is_active')->default(true),
+            Placeholder::make('mobile_verified_at')
+                ->label('Mobile Verified')
+                ->content(fn ($record) => $record?->mobile_verified_at
+                    ? "Verified on {$record->mobile_verified_at->format('d M Y')}"
+                    : 'Not verified'),
         ]);
     }
 }
