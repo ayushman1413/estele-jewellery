@@ -11,6 +11,7 @@ use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\OldJewellerySellController;
 use App\Http\Controllers\OtpAuthController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
@@ -179,6 +180,25 @@ Route::middleware('auth')->group(function () {
     Route::post('/account/rewards', [RewardSubmissionController::class, 'store'])
         ->name('account.rewards.store')
         ->middleware('throttle:10,60');
+
+    Route::get('/account/sell-jewellery', [OldJewellerySellController::class, 'landing'])
+        ->name('account.sell-jewellery.landing');
+
+    Route::get('/account/sell-jewellery/new', [OldJewellerySellController::class, 'create'])
+        ->name('account.sell-jewellery.create');
+
+    Route::post('/account/sell-jewellery', [OldJewellerySellController::class, 'store'])
+        ->name('account.sell-jewellery.store')
+        ->middleware('throttle:10,60');
+
+    Route::get('/account/sell-jewellery/requests', [OldJewellerySellController::class, 'index'])
+        ->name('account.sell-jewellery.index');
+
+    Route::get('/account/sell-jewellery/requests/{oldJewelleryRequest:request_number}', [OldJewellerySellController::class, 'show'])
+        ->name('account.sell-jewellery.show');
+
+    Route::get('/account/sell-jewellery/wallet', [OldJewellerySellController::class, 'wallet'])
+        ->name('account.sell-jewellery.wallet');
 });
 
 
