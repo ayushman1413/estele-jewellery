@@ -110,6 +110,47 @@ class OldJewellerySellPageTest extends TestCase
             ->assertSee('13,500');
     }
 
+    public function test_store_creates_a_request_and_redirects_to_show(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('original_images');
+        $user = User::factory()->create();
+
+        // Spatie MediaLibrary's acceptsMimeTypes() validates the *actual*
+        // sniffed content type of the uploaded file, not the mimetype param
+        // passed to UploadedFile::fake()->create() — a plain fake() file has
+        // no real bytes and sniffs as application/x-empty, so it is rejected
+        // regardless of the declared mime. Seed minimal MP4 ftyp-box magic
+        // bytes so the fake file is genuinely detected as video/mp4.
+        $video = \Illuminate\Http\UploadedFile::fake()->create('video.mp4', 100, 'video/mp4');
+        file_put_contents(
+            $video->getRealPath(),
+            hex2bin('00000018667479706d703432000000006d703432').str_repeat("\0", 100000)
+        );
+
+        $response = $this->actingAs($user)->post(route('account.sell-jewellery.store'), [
+            'description' => 'A gold necklace',
+            'video' => $video,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('old_jewellery_requests', [
+            'user_id' => $user->id,
+            'description' => 'A gold necklace',
+        ]);
+    }
+
+    public function test_store_requires_a_video(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('account.sell-jewellery.store'), [
+            'description' => 'Missing video',
+        ]);
+
+        $response->assertSessionHasErrors('video');
+        $this->assertDatabaseMissing('old_jewellery_requests', ['description' => 'Missing video']);
+    }
+
     public function test_wallet_page_shows_whole_number_days_remaining_not_a_raw_float(): void
     {
         $user = User::factory()->create();
