@@ -110,6 +110,31 @@ class OldJewellerySellPageTest extends TestCase
             ->assertSee('13,500');
     }
 
+    public function test_status_endpoint_returns_current_status_for_the_owner(): void
+    {
+        $user = User::factory()->create();
+        $request = $this->makeRequest(['user_id' => $user->id, 'status' => 'bidding_active']);
+
+        $response = $this->actingAs($user)
+            ->getJson(route('account.sell-jewellery.status', $request));
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'bidding_active')
+            ->assertJsonPath('data.request_number', $request->request_number);
+    }
+
+    public function test_status_endpoint_rejects_another_users_request(): void
+    {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+        $request = $this->makeRequest(['user_id' => $owner->id]);
+
+        $this->actingAs($stranger)
+            ->getJson(route('account.sell-jewellery.status', $request))
+            ->assertForbidden();
+    }
+
     private function makeRequest(array $overrides = []): OldJewelleryRequest
     {
         return OldJewelleryRequest::create(array_merge([

@@ -198,6 +198,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/account/sell-jewellery/requests/{oldJewelleryRequest:request_number}', [OldJewellerySellController::class, 'show'])
         ->name('account.sell-jewellery.show');
 
+    Route::get('/account/sell-jewellery/requests/{oldJewelleryRequest:request_number}/status', [OldJewellerySellController::class, 'status'])
+        ->name('account.sell-jewellery.status');
+
     Route::get('/account/sell-jewellery/wallet', [OldJewellerySellController::class, 'wallet'])
         ->name('account.sell-jewellery.wallet');
 });

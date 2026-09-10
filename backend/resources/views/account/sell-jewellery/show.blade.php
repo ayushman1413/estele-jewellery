@@ -23,7 +23,7 @@
     <x-breadcrumb :items="[['label' => 'My Account', 'url' => route('account.index')], ['label' => 'Sell Your Jewellery', 'url' => route('account.sell-jewellery.landing')], ['label' => 'My Requests', 'url' => route('account.sell-jewellery.index')], ['label' => $oldJewelleryRequest->request_number]]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-2xl px-3 pb-10 md:px-4 md:pb-[60px]" data-poll-status data-request-number="{{ $oldJewelleryRequest->request_number }}" data-status-url="{{ url('/api/v1/old-jewellery/requests/'.$oldJewelleryRequest->request_number.'/status') }}" data-should-poll="{{ $isPolling ? '1' : '0' }}">
+  <div class="mx-auto w-full max-w-2xl px-3 pb-10 md:px-4 md:pb-[60px]" data-poll-status data-request-number="{{ $oldJewelleryRequest->request_number }}" data-status-url="{{ route('account.sell-jewellery.status', $oldJewelleryRequest) }}" data-should-poll="{{ $isPolling ? '1' : '0' }}">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-[20px] uppercase tracking-[0.5px] md:text-[26px]">{{ $oldJewelleryRequest->request_number }}</h1>
       @include('account.sell-jewellery._status-badge', ['request' => $oldJewelleryRequest])

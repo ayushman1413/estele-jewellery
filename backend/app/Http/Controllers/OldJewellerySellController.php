@@ -58,6 +58,20 @@ class OldJewellerySellController extends Controller
         return view('account.sell-jewellery.show', ['oldJewelleryRequest' => $oldJewelleryRequest]);
     }
 
+    public function status(OldJewelleryRequest $oldJewelleryRequest): \Illuminate\Http\JsonResponse
+    {
+        Gate::authorize('view', $oldJewelleryRequest);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'request_number' => $oldJewelleryRequest->request_number,
+                'status' => $oldJewelleryRequest->status,
+                'bidding_end_at' => $oldJewelleryRequest->bidding_end_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
     public function wallet(): View
     {
         $user = Auth::user();
