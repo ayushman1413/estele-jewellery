@@ -80,6 +80,36 @@ class OldJewellerySellPageTest extends TestCase
             ->assertSee('500');
     }
 
+    public function test_show_page_renders_stepper_for_bidding_active_status(): void
+    {
+        $user = User::factory()->create();
+        $request = $this->makeRequest(['user_id' => $user->id, 'status' => 'bidding_active']);
+
+        $this->actingAs($user)
+            ->get(route('account.sell-jewellery.show', $request))
+            ->assertOk()
+            ->assertSee('Bidding Active')
+            ->assertSee('data-poll-status', false);
+    }
+
+    public function test_show_page_displays_final_amount_when_completed(): void
+    {
+        $user = User::factory()->create();
+        $request = $this->makeRequest([
+            'user_id' => $user->id,
+            'status' => 'completed',
+            'final_amount' => 15000,
+            'deduction_amount' => 1500,
+            'credited_amount' => 13500,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('account.sell-jewellery.show', $request))
+            ->assertOk()
+            ->assertSee('15,000')
+            ->assertSee('13,500');
+    }
+
     private function makeRequest(array $overrides = []): OldJewelleryRequest
     {
         return OldJewelleryRequest::create(array_merge([
