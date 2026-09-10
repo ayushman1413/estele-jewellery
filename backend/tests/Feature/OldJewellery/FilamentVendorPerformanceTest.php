@@ -22,12 +22,14 @@ class FilamentVendorPerformanceTest extends TestCase
         $vendor = Vendor::create(['name' => 'Acme Gold', 'mobile' => '9111111111', 'is_active' => true]);
 
         $requestOne = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
             'request_number' => 'OJ-TEST-PERF-1',
             'status' => 'bidding_active',
             'bidding_start_at' => now(),
             'bidding_end_at' => now()->addHours(3),
         ]);
         $requestTwo = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
             'request_number' => 'OJ-TEST-PERF-2',
             'status' => 'bidding_active',
             'bidding_start_at' => now(),
