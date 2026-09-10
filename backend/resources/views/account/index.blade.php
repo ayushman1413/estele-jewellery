@@ -34,6 +34,7 @@
           <li><a class="block rounded-md bg-pinksoft px-3 py-2.5 font-medium text-accent" href="{{ route('account.index') }}">Overview</a></li>
           <li><a class="block rounded-md px-3 py-2.5 text-heading transition-colors hover:bg-pinksoft" href="#order-history">Order History</a></li>
           <li><a class="block rounded-md px-3 py-2.5 text-heading transition-colors hover:bg-pinksoft" href="{{ route('account.rewards.index') }}">Rewards & Wallet</a></li>
+          <li><a class="block rounded-md px-3 py-2.5 text-heading transition-colors hover:bg-pinksoft" href="{{ route('account.sell-jewellery.landing') }}">Sell Your Jewellery</a></li>
           <li><a class="block rounded-md px-3 py-2.5 text-heading transition-colors hover:bg-pinksoft" href="{{ route('account.addresses') }}">Addresses</a></li>
           <li><a class="block rounded-md px-3 py-2.5 text-heading transition-colors hover:bg-pinksoft" href="#profile-details">Profile</a></li>
         </ul>
@@ -44,6 +45,7 @@
           <h2 class="text-[14px] font-medium uppercase tracking-[0.4px]">Order History</h2>
           <a class="text-[12px] font-medium text-heading underline hover:text-accent md:hidden" href="{{ route('account.addresses') }}">My Addresses</a>
           <a class="text-[12px] font-medium text-heading underline hover:text-accent md:hidden" href="{{ route('account.rewards.index') }}">Rewards & Wallet</a>
+          <a class="text-[12px] font-medium text-heading underline hover:text-accent md:hidden" href="{{ route('account.sell-jewellery.landing') }}">Sell Your Jewellery</a>
         </div>
 
         @if($orders->isEmpty())

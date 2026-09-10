@@ -17,4 +17,9 @@ class VendorAcceptBidRequest extends FormRequest
             'amount' => ['required', 'numeric', 'gt:0', 'max:1000000'],
         ];
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return route('old-jewellery.vendor.show', $this->route('token'));
+    }
 }

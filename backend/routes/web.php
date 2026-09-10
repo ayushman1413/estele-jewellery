@@ -11,6 +11,7 @@ use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\OldJewellerySellController;
 use App\Http\Controllers\OtpAuthController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\RewardSubmissionController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\VendorBidController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])
@@ -179,6 +181,28 @@ Route::middleware('auth')->group(function () {
     Route::post('/account/rewards', [RewardSubmissionController::class, 'store'])
         ->name('account.rewards.store')
         ->middleware('throttle:10,60');
+
+    Route::get('/account/sell-jewellery', [OldJewellerySellController::class, 'landing'])
+        ->name('account.sell-jewellery.landing');
+
+    Route::get('/account/sell-jewellery/new', [OldJewellerySellController::class, 'create'])
+        ->name('account.sell-jewellery.create');
+
+    Route::post('/account/sell-jewellery', [OldJewellerySellController::class, 'store'])
+        ->name('account.sell-jewellery.store')
+        ->middleware('throttle:10,60');
+
+    Route::get('/account/sell-jewellery/requests', [OldJewellerySellController::class, 'index'])
+        ->name('account.sell-jewellery.index');
+
+    Route::get('/account/sell-jewellery/requests/{oldJewelleryRequest:request_number}', [OldJewellerySellController::class, 'show'])
+        ->name('account.sell-jewellery.show');
+
+    Route::get('/account/sell-jewellery/requests/{oldJewelleryRequest:request_number}/status', [OldJewellerySellController::class, 'status'])
+        ->name('account.sell-jewellery.status');
+
+    Route::get('/account/sell-jewellery/wallet', [OldJewellerySellController::class, 'wallet'])
+        ->name('account.sell-jewellery.wallet');
 });
 
 
@@ -291,4 +315,16 @@ Route::post('/webhooks/razorpay', [PaymentController::class, 'webhook'])
 
 Route::get('/old-jewellery/vendor-video/{invitation}', [\App\Http\Controllers\VendorMediaController::class, 'video'])
     ->name('old-jewellery.vendor.video')
-    ->middleware('signed'); 
+    ->middleware('signed');
+
+Route::get('/old-jewellery/vendor/{token}', [VendorBidController::class, 'show'])
+    ->name('old-jewellery.vendor.show')
+    ->middleware('throttle:30,1');
+
+Route::post('/old-jewellery/vendor/{token}/accept', [VendorBidController::class, 'accept'])
+    ->name('old-jewellery.vendor.accept')
+    ->middleware('throttle:30,1');
+
+Route::post('/old-jewellery/vendor/{token}/decline', [VendorBidController::class, 'decline'])
+    ->name('old-jewellery.vendor.decline')
+    ->middleware('throttle:30,1'); 
