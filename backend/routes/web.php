@@ -19,6 +19,7 @@ use App\Http\Controllers\RewardSubmissionController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\VendorBidController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])
@@ -311,4 +312,15 @@ Route::post('/webhooks/razorpay', [PaymentController::class, 'webhook'])
 
 Route::get('/old-jewellery/vendor-video/{invitation}', [\App\Http\Controllers\VendorMediaController::class, 'video'])
     ->name('old-jewellery.vendor.video')
-    ->middleware('signed'); 
+    ->middleware('signed');
+
+Route::get('/old-jewellery/vendor/{token}', [VendorBidController::class, 'show'])
+    ->name('old-jewellery.vendor.show');
+
+Route::post('/old-jewellery/vendor/{token}/accept', [VendorBidController::class, 'accept'])
+    ->name('old-jewellery.vendor.accept')
+    ->middleware('throttle:30,1');
+
+Route::post('/old-jewellery/vendor/{token}/decline', [VendorBidController::class, 'decline'])
+    ->name('old-jewellery.vendor.decline')
+    ->middleware('throttle:30,1'); 
