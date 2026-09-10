@@ -24,6 +24,15 @@
   @if (session('error'))
     <div class="mb-4 rounded-lg border border-salebadge bg-red-50 p-3 text-[13px] text-salebadge">{{ session('error') }}</div>
   @endif
+  @if ($errors->any())
+    <div class="mb-4 rounded-lg border border-salebadge bg-red-50 p-3 text-[13px] text-salebadge">
+      <ul class="list-disc space-y-1 pl-4">
+        @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
 
   <h1 class="mb-1 text-[18px] uppercase tracking-[0.4px] text-heading">{{ $bidRequest->request_number }}</h1>
   <p class="mb-4 text-[12px] text-muted">Bidding closes {{ $bidRequest->bidding_end_at?->format('d M Y, h:i A') }}</p>

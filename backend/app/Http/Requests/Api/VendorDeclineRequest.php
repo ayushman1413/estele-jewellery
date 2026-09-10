@@ -17,4 +17,9 @@ class VendorDeclineRequest extends FormRequest
             'reason' => ['nullable', 'string', 'max:1000'],
         ];
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return route('old-jewellery.vendor.show', $this->route('token'));
+    }
 }

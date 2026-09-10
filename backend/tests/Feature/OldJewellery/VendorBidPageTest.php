@@ -69,6 +69,17 @@ class VendorBidPageTest extends TestCase
             ->assertSessionHas('error');
     }
 
+    public function test_an_invalid_bid_amount_shows_a_validation_error(): void
+    {
+        [$invitation, $token] = $this->makeInvitation();
+
+        $response = $this->post(route('old-jewellery.vendor.accept', $token), ['amount' => 2000000]);
+
+        $response->assertRedirect(route('old-jewellery.vendor.show', $token));
+        $response->assertSessionHasErrors('amount');
+        $this->assertSame('pending', $invitation->fresh()->response_status);
+    }
+
     /**
      * @return array{0: OldJewelleryVendorInvitation, 1: string}
      */
