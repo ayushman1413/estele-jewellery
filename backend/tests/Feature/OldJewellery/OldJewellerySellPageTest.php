@@ -110,6 +110,36 @@ class OldJewellerySellPageTest extends TestCase
             ->assertSee('13,500');
     }
 
+    public function test_wallet_page_shows_whole_number_days_remaining_not_a_raw_float(): void
+    {
+        $user = User::factory()->create();
+        $request = $this->makeRequest(['user_id' => $user->id, 'status' => 'completed']);
+        $txn = \App\Models\WalletTransaction::create([
+            'user_id' => $user->id,
+            'type' => 'credit',
+            'amount' => 9000,
+            'balance_after' => 9000,
+            'reason' => 'old_jewellery_sale',
+        ]);
+        \App\Models\OldJewelleryWalletCredit::create([
+            'user_id' => $user->id,
+            'old_jewellery_request_id' => $request->id,
+            'wallet_transaction_id' => $txn->id,
+            'gross_amount' => 10000,
+            'deduction_amount' => 1000,
+            'credited_amount' => 9000,
+            'remaining_amount' => 9000,
+            'credited_at' => now(),
+            'expires_at' => now()->addDays(9)->addHours(17),
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('account.sell-jewellery.wallet'));
+
+        $response->assertOk();
+        $response->assertSee('9d left');
+    }
+
     public function test_status_endpoint_returns_current_status_for_the_owner(): void
     {
         $user = User::factory()->create();

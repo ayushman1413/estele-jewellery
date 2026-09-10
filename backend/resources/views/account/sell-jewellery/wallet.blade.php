@@ -23,7 +23,7 @@
       <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         @foreach ($credits as $credit)
           @php
-            $daysLeft = $credit->expires_at ? now()->diffInDays($credit->expires_at, false) : null;
+            $daysLeft = $credit->expires_at ? (int) floor(now()->diffInDays($credit->expires_at, false)) : null;
             $expiryClass = $daysLeft !== null && $daysLeft <= 1 ? 'text-red-700' : ($daysLeft !== null && $daysLeft <= 3 ? 'text-amber-700' : 'text-muted');
             $percentUsed = $credit->credited_amount > 0 ? round((1 - ((float) $credit->remaining_amount / (float) $credit->credited_amount)) * 100) : 0;
           @endphp
