@@ -318,7 +318,8 @@ Route::get('/old-jewellery/vendor-video/{invitation}', [\App\Http\Controllers\Ve
     ->middleware('signed');
 
 Route::get('/old-jewellery/vendor/{token}', [VendorBidController::class, 'show'])
-    ->name('old-jewellery.vendor.show');
+    ->name('old-jewellery.vendor.show')
+    ->middleware('throttle:30,1');
 
 Route::post('/old-jewellery/vendor/{token}/accept', [VendorBidController::class, 'accept'])
     ->name('old-jewellery.vendor.accept')

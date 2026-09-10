@@ -62,12 +62,13 @@ class OldJewellerySellPageTest extends TestCase
         $user = User::factory()->create();
         $other = User::factory()->create();
         $mine = $this->makeRequest(['user_id' => $user->id]);
-        $this->makeRequest(['user_id' => $other->id]);
+        $otherRequest = $this->makeRequest(['user_id' => $other->id]);
 
         $this->actingAs($user)
             ->get(route('account.sell-jewellery.index'))
             ->assertOk()
-            ->assertSee($mine->request_number);
+            ->assertSee($mine->request_number)
+            ->assertDontSee($otherRequest->request_number);
     }
 
     public function test_wallet_page_shows_balance_and_credits(): void

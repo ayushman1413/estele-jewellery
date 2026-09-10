@@ -64,7 +64,8 @@ class FilamentVendorPerformanceTest extends TestCase
 
         $response->assertOk()
             ->assertSee('2') // invitations sent
-            ->assertSee('1'); // bids won
+            ->assertSee('1') // bids won
+            ->assertSee('100%'); // win rate: 1 bid submitted, 1 won
     }
 
     public function test_mobile_verified_column_appears_on_the_list(): void
@@ -74,7 +75,8 @@ class FilamentVendorPerformanceTest extends TestCase
 
         $this->actingAs($admin)
             ->get('/admin/vendors')
-            ->assertOk();
+            ->assertOk()
+            ->assertSee('Verified');
     }
 
     private function makeAdmin(): User

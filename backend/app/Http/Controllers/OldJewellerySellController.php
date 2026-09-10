@@ -37,10 +37,12 @@ class OldJewellerySellController extends Controller
             $request->file('video'),
         );
 
-        $this->invitationService->inviteAll($oldJewelleryRequest->fresh());
+        $fresh = $oldJewelleryRequest->fresh();
+
+        $this->invitationService->inviteAll($fresh);
 
         return redirect()
-            ->route('account.sell-jewellery.show', $oldJewelleryRequest->fresh())
+            ->route('account.sell-jewellery.show', $fresh)
             ->with('success', 'Your request has been submitted — vendors are being notified now.');
     }
 
