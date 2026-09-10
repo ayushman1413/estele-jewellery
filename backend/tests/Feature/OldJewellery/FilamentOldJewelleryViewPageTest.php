@@ -116,10 +116,40 @@ class FilamentOldJewelleryViewPageTest extends TestCase
         $response = $this->get(route('admin.old-jewellery.video', $request));
         $response->assertOk();
         $this->assertSame('video/mp4', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('inline;', $response->headers->get('Content-Disposition'));
+
+        $downloadResponse = $this->get(route('admin.old-jewellery.video', ['oldJewelleryRequest' => $request, 'download' => 1]));
+        $downloadResponse->assertOk();
+        $this->assertStringStartsWith('attachment;', $downloadResponse->headers->get('Content-Disposition'));
 
         $this->get("/admin/old-jewellery-requests/{$request->request_number}")
             ->assertOk()
-            ->assertSee(route('admin.old-jewellery.video', $request), escape: false);
+            ->assertSee(route('admin.old-jewellery.video', $request), escape: false)
+            ->assertSee('Download video');
+    }
+
+    public function test_view_page_warns_when_video_is_quicktime_format(): void
+    {
+        Storage::fake('original_images');
+        Storage::fake('public');
+
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
+            'request_number' => 'OJ-TEST-VIDEO-2',
+            'status' => 'bidding_active',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+        $video = UploadedFile::fake()->create('video.mov', 100, 'video/quicktime');
+        file_put_contents($video->getRealPath(), hex2bin('0000001c6674797071742020').str_repeat("\0", 4096));
+        $request->addMedia($video)->toMediaCollection('video');
+
+        $this->actingAsSuperAdmin();
+
+        $this->get("/admin/old-jewellery-requests/{$request->request_number}")
+            ->assertOk()
+            ->assertSee('Download video')
+            ->assertSee('may not play above in Chrome/Firefox');
     }
 
     /**

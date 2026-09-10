@@ -15,12 +15,14 @@ class AdminOldJewelleryMediaController extends Controller
         $media = $oldJewelleryRequest->getFirstMedia('video');
         abort_unless($media, 404);
 
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+
         return response()->stream(function () use ($media) {
             echo $media->stream();
         }, 200, [
             'Content-Type' => $media->mime_type,
             'Content-Length' => $media->size,
-            'Content-Disposition' => 'inline; filename="'.$media->file_name.'"',
+            'Content-Disposition' => $disposition.'; filename="'.$media->file_name.'"',
             'Cache-Control' => 'private, no-store',
         ]);
     }
