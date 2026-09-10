@@ -6,13 +6,16 @@ use App\Models\OldJewelleryRequest;
 use App\Services\OldJewellery\OldJewelleryBiddingService;
 use App\Services\OldJewellery\OldJewelleryClosingService;
 use Filament\Actions\Action;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\PaginationMode;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class OldJewelleryRequestsTable
 {
@@ -21,16 +24,43 @@ class OldJewelleryRequestsTable
         return $table
             ->paginationMode(PaginationMode::Simple)
             ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->with(['user', 'walletCredit'])
+                ->withCount([
+                    'invitations',
+                    'invitations as responses_count' => fn (Builder $q) => $q->where('response_status', '!=', 'pending'),
+                ])
+                ->withMax(['bids as highest_bid' => fn (Builder $q) => $q->where('is_valid', true)], 'amount')
+                ->withMax(['bids as admin_bid' => fn (Builder $q) => $q->where('bidder_type', 'admin')], 'amount'))
             ->columns([
-                TextColumn::make('request_number')->searchable(),
-                TextColumn::make('user.name')->label('Customer')->searchable(),
-                TextColumn::make('status')->badge(),
-                TextColumn::make('bidding_start_at')->dateTime('d M Y, h:i A')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('bidding_end_at')->dateTime('d M Y, h:i A'),
-                TextColumn::make('invitations_count')->counts('invitations')->label('Vendors Invited'),
-                TextColumn::make('final_amount')->formatStateUsing(fn ($state) => filled($state) ? '₹'.number_format((float) $state, 2) : '—'),
-                TextColumn::make('credited_amount')->label('Wallet Credited')->formatStateUsing(fn ($state) => filled($state) ? '₹'.number_format((float) $state, 2) : '—'),
-                TextColumn::make('created_at')->label('Submitted')->dateTime('d M Y, h:i A')->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('request_number')->label('Request ID')->searchable()->weight('bold'),
+                TextColumn::make('user.name')->label('Customer')->searchable()->description(fn (OldJewelleryRequest $record) => $record->user?->phone),
+                TextColumn::make('created_at')->label('Submitted')->dateTime('d M Y, h:i A')->sortable(),
+                TextColumn::make('status')->badge()
+                    ->color(fn (string $state) => match ($state) {
+                        'bidding_active' => 'warning',
+                        'bid_selected', 'wallet_credited', 'completed' => 'success',
+                        'cancelled', 'wallet_expired' => 'danger',
+                        default => 'gray',
+                    }),
+                TextColumn::make('bidding_start_at')->label('Bid start')->dateTime('d M Y, h:i A')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('bidding_end_at')->label('Bid end')->dateTime('d M Y, h:i A')->sortable(),
+                TextColumn::make('invitations_count')->label('Invited')->alignCenter(),
+                TextColumn::make('responses_count')->label('Responses')->alignCenter(),
+                TextColumn::make('highest_bid')->label('Highest bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
+                TextColumn::make('admin_bid')->label('Admin bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—')->toggleable(),
+                TextColumn::make('final_amount')->label('Final bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
+                TextColumn::make('credited_amount')->label('Wallet amount')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
+                TextColumn::make('walletCredit.status')->label('Wallet status')->badge()
+                    ->color(fn (?string $state) => match ($state) {
+                        'active' => 'success',
+                        'partially_used' => 'warning',
+                        'used' => 'gray',
+                        'expired' => 'danger',
+                        default => 'gray',
+                    })
+                    ->placeholder('—'),
+                TextColumn::make('walletCredit.expires_at')->label('Wallet expiry')->dateTime('d M Y')->placeholder('—'),
             ])
             ->filters([
                 SelectFilter::make('status')->options([
@@ -46,11 +76,20 @@ class OldJewelleryRequestsTable
                     'completed' => 'Completed',
                     'cancelled' => 'Cancelled',
                 ]),
+                Filter::make('bidding_open')
+                    ->label('Bidding open now')
+                    ->query(fn (Builder $query) => $query->where('status', 'bidding_active')->where('bidding_end_at', '>', now())),
             ])
             ->recordActions([
+                ViewAction::make(),
                 self::adminBidAction(),
                 self::closeAction(),
             ]);
+    }
+
+    public static function money(mixed $amount): string
+    {
+        return $amount === null || $amount === '' ? '—' : '₹'.number_format((float) $amount, 2);
     }
 
     public static function adminBidAction(): Action
@@ -61,7 +100,7 @@ class OldJewelleryRequestsTable
             ->color('warning')
             ->visible(fn (OldJewelleryRequest $record) => in_array($record->status, ['vendors_notified', 'bidding_active'], true) && now()->lessThan($record->bidding_end_at))
             ->schema([
-                TextInput::make('amount')->label('Valuation amount (₹)')->numeric()->required()->minValue(0.01),
+                TextInput::make('amount')->label('Valuation amount (₹)')->numeric()->required()->minValue(0.01)->maxValue(OldJewelleryBiddingService::MAX_BID_AMOUNT),
             ])
             ->action(function (array $data, OldJewelleryRequest $record) {
                 try {
@@ -83,11 +122,12 @@ class OldJewelleryRequestsTable
             ->icon(Heroicon::OutlinedLockClosed)
             ->color('danger')
             ->requiresConfirmation()
+            ->modalDescription('Bidding will be locked immediately, the highest valid bid selected, and 90% credited to the customer wallet. This cannot be undone.')
             ->visible(fn (OldJewelleryRequest $record) => $record->status === 'bidding_active')
             ->action(function (OldJewelleryRequest $record) {
                 $result = app(OldJewelleryClosingService::class)->close($record, force: true);
 
-                Notification::make()->title("Request is now: {$result->status}")->success()->send();
+                Notification::make()->title('Request is now: '.str($result->status)->replace('_', ' ')->title())->success()->send();
             });
     }
 }
