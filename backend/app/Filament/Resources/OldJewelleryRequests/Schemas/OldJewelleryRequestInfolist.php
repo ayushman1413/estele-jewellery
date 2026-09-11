@@ -39,8 +39,9 @@ class OldJewelleryRequestInfolist
                         ->label('Image')
                         ->state(fn (OldJewelleryRequest $record) => $record->getFirstMediaUrl('image', 'thumb') ?: null)
                         ->placeholder('No image uploaded')
-                        ->height(240),
-                    ViewEntry::make('video')->label('Video')->view('filament.old-jewellery.video'),
+                        ->height(280)
+                        ->extraImgAttributes(['class' => 'w-full object-cover rounded-lg']),
+                    ViewEntry::make('video')->label('Video')->view('filament.old-jewellery.video')->columnSpanFull(),
                 ]),
 
             Section::make('Bidding')

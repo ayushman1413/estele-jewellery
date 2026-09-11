@@ -128,7 +128,7 @@ class FilamentOldJewelleryViewPageTest extends TestCase
             ->assertSee('Download video');
     }
 
-    public function test_view_page_warns_when_video_is_quicktime_format(): void
+    public function test_view_page_attempts_inline_playback_for_quicktime_video_with_download_fallback(): void
     {
         Storage::fake('original_images');
         Storage::fake('public');
@@ -146,10 +146,12 @@ class FilamentOldJewelleryViewPageTest extends TestCase
 
         $this->actingAsSuperAdmin();
 
-        $this->get("/admin/old-jewellery-requests/{$request->request_number}")
-            ->assertOk()
-            ->assertSee('Download video')
-            ->assertSee('may not play above in Chrome/Firefox');
+        $response = $this->get("/admin/old-jewellery-requests/{$request->request_number}");
+
+        $response->assertOk()
+            ->assertSee('<video', escape: false)
+            ->assertSee('Download video', escape: false)
+            ->assertDontSee('type="video/quicktime"', escape: false);
     }
 
     /**
