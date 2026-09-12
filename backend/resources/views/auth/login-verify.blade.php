@@ -11,7 +11,7 @@
       <h1 class="font-serif text-[24px] font-semibold text-heading text-center mb-1">Enter Verification Code</h1>
       <p class="text-[13px] text-muted text-center mb-6">We sent a 6-digit code to <strong class="text-heading">{{ $phone }}</strong>.</p>
 
-      <form action="{{ route('login.verify.attempt') }}" method="post" class="space-y-4">
+      <form action="{{ route('login.verify.attempt') }}" method="post" class="space-y-4" data-loading-submit>
         @csrf
 
         <div>

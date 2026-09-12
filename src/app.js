@@ -1507,4 +1507,22 @@ import './app.css';
     });
   })();
 
+  /* ------------------------------------------------------------------------
+     SUBMIT LOADING DOTS — opt-in via data-loading-submit on a <form>. These
+     are plain full-page-reload POSTs (OTP login), so this doesn't skip the
+     request — it just swaps the submit button's label for 3 bouncing dots
+     immediately so the page feels responsive during the round trip, and
+     disables the button to block a double submit.
+     ---------------------------------------------------------------------- */
+  $$('form[data-loading-submit]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      var btn = $('button[type="submit"]', form);
+      if (!btn || btn.disabled) return;
+
+      btn.disabled = true;
+      btn.dataset.originalLabel = btn.innerHTML;
+      btn.innerHTML = '<span class="btn-loading-dots"><span></span><span></span><span></span></span>';
+    });
+  });
+
 })();

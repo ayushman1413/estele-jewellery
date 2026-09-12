@@ -12,7 +12,7 @@
       <h1 class="font-serif text-[24px] font-semibold text-heading text-center mb-1">Welcome Back</h1>
       <p class="text-[13px] text-muted text-center mb-6">We'll text a one-time verification code to your phone.</p>
 
-      <form action="{{ route('login.send') }}" method="post" class="space-y-4">
+      <form action="{{ route('login.send') }}" method="post" class="space-y-4" data-loading-submit>
         @csrf
 
         <div>
