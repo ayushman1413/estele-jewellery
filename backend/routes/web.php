@@ -342,3 +342,9 @@ Route::post('/old-jewellery/vendor/{token}/decline', [VendorBidController::class
 Route::get('/admin/old-jewellery/{oldJewelleryRequest}/video', [AdminOldJewelleryMediaController::class, 'video'])
     ->middleware('auth')
     ->name('admin.old-jewellery.video');
+
+// The image original sits on a private disk with no public URL, so the
+// admin lightbox streams it through the controller the same way the video is.
+Route::get('/admin/old-jewellery/{oldJewelleryRequest}/image', [AdminOldJewelleryMediaController::class, 'image'])
+    ->middleware('auth')
+    ->name('admin.old-jewellery.image');

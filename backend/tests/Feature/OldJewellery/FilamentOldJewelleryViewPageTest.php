@@ -125,10 +125,10 @@ class FilamentOldJewelleryViewPageTest extends TestCase
         $this->get("/admin/old-jewellery-requests/{$request->request_number}")
             ->assertOk()
             ->assertSee(route('admin.old-jewellery.video', $request), escape: false)
-            ->assertSee('Download video');
+            ->assertDontSee('Download video');
     }
 
-    public function test_view_page_attempts_inline_playback_for_quicktime_video_with_download_fallback(): void
+    public function test_view_page_plays_quicktime_video_inline_without_a_download_option(): void
     {
         Storage::fake('original_images');
         Storage::fake('public');
@@ -150,7 +150,7 @@ class FilamentOldJewelleryViewPageTest extends TestCase
 
         $response->assertOk()
             ->assertSee('<video', escape: false)
-            ->assertSee('Download video', escape: false)
+            ->assertDontSee('Download video', escape: false)
             ->assertDontSee('type="video/quicktime"', escape: false);
     }
 

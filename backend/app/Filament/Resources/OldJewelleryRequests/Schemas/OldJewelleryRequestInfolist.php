@@ -7,7 +7,6 @@ use App\Models\OldJewelleryBid;
 use App\Models\OldJewelleryRequest;
 use App\Models\User;
 use App\Models\Vendor;
-use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
@@ -35,13 +34,12 @@ class OldJewelleryRequestInfolist
                 ->columns(2)
                 ->schema([
                     TextEntry::make('description')->columnSpanFull()->placeholder('No description'),
-                    ImageEntry::make('image')
-                        ->label('Image')
-                        ->state(fn (OldJewelleryRequest $record) => $record->getFirstMediaUrl('image', 'thumb') ?: null)
-                        ->placeholder('No image uploaded')
-                        ->height(280)
-                        ->extraImgAttributes(['class' => 'w-full object-cover rounded-lg']),
-                    ViewEntry::make('video')->label('Video')->view('filament.old-jewellery.video')->columnSpanFull(),
+                    // Photo and video render as one entry: small tiles side by
+                    // side, each opening a full-page overlay on click.
+                    ViewEntry::make('media')
+                        ->label('Photo & video')
+                        ->view('filament.old-jewellery.media')
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Bidding')
