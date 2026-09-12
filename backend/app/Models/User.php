@@ -23,7 +23,15 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->roles()->exists();
+        // An invited contact exists before it has a password — it must not be
+        // able to reach the panel until the setup link has actually been used.
+        return filled($this->password) && $this->roles()->exists();
+    }
+
+    /** The bidding vendor this login belongs to, if any. */
+    public function vendor(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Vendor::class);
     }
 
     public function orders(): \Illuminate\Database\Eloquent\Relations\HasMany

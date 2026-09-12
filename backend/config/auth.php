@@ -104,6 +104,17 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // Panel invites (vendors and admin contacts) need a far longer window
+        // than a self-service reset: the recipient is not sitting at the site
+        // waiting for the mail. 48 hours, and no throttle so an admin can
+        // re-send immediately when a vendor says the link never arrived.
+        'panel_invites' => [
+            'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 2880,
+            'throttle' => 0,
+        ],
     ],
 
     /*

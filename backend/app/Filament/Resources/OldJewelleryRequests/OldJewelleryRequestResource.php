@@ -7,11 +7,13 @@ use App\Filament\Resources\OldJewelleryRequests\Pages\ViewOldJewelleryRequest;
 use App\Filament\Resources\OldJewelleryRequests\Schemas\OldJewelleryRequestInfolist;
 use App\Filament\Resources\OldJewelleryRequests\Tables\OldJewelleryRequestsTable;
 use App\Models\OldJewelleryRequest;
+use App\Models\Vendor;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class OldJewelleryRequestResource extends Resource
@@ -68,6 +70,53 @@ class OldJewelleryRequestResource extends Resource
      */
     public static function canView(Model $record): bool
     {
-        return (bool) auth()->user()?->can('View:OldJewelleryRequest');
+        return (bool) auth()->user()?->can('View:OldJewelleryRequest')
+            && self::isVisibleToCurrentVendor($record);
+    }
+
+    /**
+     * A vendor contact only ever sees requests it was actually invited to bid
+     * on. The Shield permission decides *whether* they reach this resource;
+     * this decides *which rows* — without it, granting ViewAny would expose
+     * every customer's name, address and photos to an outside buyer.
+     *
+     * Staff without a linked vendor record (admins) are unaffected.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if ($vendorId = self::currentVendorId()) {
+            $query->whereHas('invitations', fn (Builder $q) => $q->where('vendor_id', $vendorId));
+        }
+
+        return $query;
+    }
+
+    private static function isVisibleToCurrentVendor(Model $record): bool
+    {
+        $vendorId = self::currentVendorId();
+
+        return $vendorId === null
+            || $record->invitations()->where('vendor_id', $vendorId)->exists();
+    }
+
+    /**
+     * The bidding vendor tied to the signed-in user, or null when the user is
+     * ordinary staff. Only active 'vendor' contacts are scoped — an 'admin'
+     * contact is a normal panel login that happens to live in the same table.
+     */
+    private static function currentVendorId(): ?int
+    {
+        $userId = auth()->id();
+
+        if (! $userId) {
+            return null;
+        }
+
+        return Vendor::query()
+            ->where('user_id', $userId)
+            ->where('access_role', Vendor::ACCESS_ROLE_VENDOR)
+            ->value('id');
     }
 }

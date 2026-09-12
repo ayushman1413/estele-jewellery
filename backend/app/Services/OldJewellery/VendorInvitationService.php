@@ -41,7 +41,12 @@ class VendorInvitationService
                 return collect();
             }
 
-            $vendors = Vendor::where('is_active', true)->get();
+            // access_role 'admin' rows are panel logins that happen to live in
+            // this table — they are not bidders, so they must never receive an
+            // invitation (nor the notification that follows from one).
+            $vendors = Vendor::where('is_active', true)
+                ->where('access_role', Vendor::ACCESS_ROLE_VENDOR)
+                ->get();
 
             $created = $vendors->map(function (Vendor $vendor) use ($locked) {
                 $plaintext = Str::random(64);

@@ -14,6 +14,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OldJewellerySellController;
 use App\Http\Controllers\OtpAuthController;
+use App\Http\Controllers\PanelPasswordSetupController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReviewController;
@@ -232,6 +233,22 @@ Route::get('/faq', [FaqController::class, 'index'])
 
 Route::get('/pages/{cmsPage:slug}', [CmsPageController::class, 'show'])
     ->name('pages.show');
+
+/*
+|--------------------------------------------------------------------------
+| Panel password setup (vendor / admin invites)
+|--------------------------------------------------------------------------
+| Reached only from an emailed one-time token. Throttled because the token is
+| the only thing standing between a guessed link and a set password.
+*/
+
+Route::get('/panel/set-password/{token}', [PanelPasswordSetupController::class, 'show'])
+    ->middleware('throttle:10,1')
+    ->name('panel.password.setup');
+
+Route::post('/panel/set-password', [PanelPasswordSetupController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('panel.password.store');
 
 /*
 |--------------------------------------------------------------------------
