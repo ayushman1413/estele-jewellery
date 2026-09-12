@@ -13,9 +13,22 @@ class AccountController extends Controller
 {
     public function index()
     {
-        $orders = Auth::user()->orders()->with('items')->paginate(10);
+        $user = Auth::user();
 
-        return view('account.index', ['orders' => $orders]);
+        $orders = $user->orders()->with('items')->paginate(10);
+
+        // One grouped query rather than a count per tile — the overview shows
+        // four status tiles and every status not returned is simply zero.
+        $statusCounts = $user->orders()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return view('account.index', [
+            'orders' => $orders,
+            'statusCounts' => $statusCounts,
+            'walletBalance' => $user->wallet_balance,
+        ]);
     }
 
     public function updateProfile(Request $request)
