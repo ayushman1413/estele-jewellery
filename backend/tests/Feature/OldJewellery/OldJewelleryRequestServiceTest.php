@@ -22,8 +22,29 @@ class OldJewelleryRequestServiceTest extends TestCase
         $first = $service->generateRequestNumber();
         $second = $service->generateRequestNumber();
 
-        $this->assertMatchesRegularExpression('/^OJ-\d{4}-\d{6}$/', $first);
+        // At least three digits, zero-padded — "001", and "1000" once the
+        // counter passes 999 rather than wrapping back to "000".
+        $this->assertMatchesRegularExpression('/^\d{3,}$/', $first);
         $this->assertNotSame($first, $second);
+        $this->assertSame((int) $first + 1, (int) $second);
+    }
+
+    public function test_request_numbers_do_not_reset_between_years(): void
+    {
+        $service = app(OldJewelleryRequestService::class);
+
+        $this->travelTo(now()->setDate(2026, 12, 31));
+        $lastOfYear = $service->generateRequestNumber();
+
+        $this->travelTo(now()->setDate(2027, 1, 1));
+        $firstOfNextYear = $service->generateRequestNumber();
+
+        $this->travelBack();
+
+        // The number no longer carries a year, so a per-year counter would
+        // hand out a duplicate here — and request_number is the route key.
+        $this->assertNotSame($lastOfYear, $firstOfNextYear);
+        $this->assertSame((int) $lastOfYear + 1, (int) $firstOfNextYear);
     }
 
     public function test_create_requires_a_video(): void

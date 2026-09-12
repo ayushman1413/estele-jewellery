@@ -62,7 +62,18 @@ class OldJewelleryRequestService
     }
 
     /**
-     * Format: OJ-{year}-{6-digit sequence}, e.g. OJ-2026-000123. Uses a
+     * A single global counter row, not one per year: the number carries no
+     * year any more, so resetting it annually would hand 2027 the same "001"
+     * that 2026 already used — and request_number is the route key, so a
+     * duplicate would collide on lookups as well as the unique index.
+     *
+     * Zero-padded to 3 for readability only; past 999 it simply grows to
+     * "1000" rather than wrapping or truncating.
+     */
+    public const SEQUENCE_KEY = 'global';
+
+    /**
+     * Format: zero-padded sequence, e.g. 001, 002 ... 999, 1000. Uses a
      * dedicated counter row (locked for update inside this transaction) so
      * two concurrent requests in the same second can never collide — the
      * counter increment and the read happen atomically under the row lock.
@@ -70,16 +81,14 @@ class OldJewelleryRequestService
     public function generateRequestNumber(): string
     {
         return DB::transaction(function () {
-            $year = now()->format('Y');
-
             $sequence = DB::table('old_jewellery_number_sequences')
-                ->where('year', $year)
+                ->where('sequence_key', self::SEQUENCE_KEY)
                 ->lockForUpdate()
                 ->first();
 
             if (! $sequence) {
                 DB::table('old_jewellery_number_sequences')->insert([
-                    'year' => $year,
+                    'sequence_key' => self::SEQUENCE_KEY,
                     'last_value' => 0,
                 ]);
                 $nextValue = 1;
@@ -88,10 +97,10 @@ class OldJewelleryRequestService
             }
 
             DB::table('old_jewellery_number_sequences')
-                ->where('year', $year)
+                ->where('sequence_key', self::SEQUENCE_KEY)
                 ->update(['last_value' => $nextValue]);
 
-            return sprintf('OJ-%s-%06d', $year, $nextValue);
+            return sprintf('%03d', $nextValue);
         });
     }
 }
