@@ -5,7 +5,9 @@ namespace App\Services\OldJewellery;
 use App\Models\OldJewelleryActivityLog;
 use App\Models\OldJewelleryBid;
 use App\Models\OldJewelleryRequest;
+use App\Notifications\VendorBidOutcome;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OldJewelleryClosingService
 {
@@ -25,7 +27,9 @@ class OldJewelleryClosingService
      */
     public function close(OldJewelleryRequest $request, bool $force = false): OldJewelleryRequest
     {
-        return DB::transaction(function () use ($request, $force) {
+        $statusBefore = $request->status;
+
+        $closed = DB::transaction(function () use ($request, $force) {
             $locked = OldJewelleryRequest::whereKey($request->id)->lockForUpdate()->first();
 
             if ($locked->status !== 'bidding_active' || (! $force && now()->lessThan($locked->bidding_end_at))) {
@@ -86,5 +90,50 @@ class OldJewelleryClosingService
 
             return $locked->fresh();
         });
+
+        // Outside the transaction, and only for the call that actually did the
+        // closing — a delayed/duplicate run finds the row already closed and
+        // must not re-notify. Same "notification is a separate business
+        // transaction" placement as VendorInvitationService::inviteAll().
+        if ($statusBefore === 'bidding_active' && $closed->status !== 'bidding_active') {
+            $this->notifyBidders($closed);
+        }
+
+        return $closed;
+    }
+
+    /**
+     * One outcome mail per vendor that was invited, win or lose. Admin-role
+     * contacts are never invited, so they are absent from this list by
+     * construction.
+     */
+    private function notifyBidders(OldJewelleryRequest $request): void
+    {
+        $winningVendorId = $request->winningBid?->vendor_id;
+
+        $request->loadMissing('invitations.vendor');
+
+        foreach ($request->invitations as $invitation) {
+            $vendor = $invitation->vendor;
+
+            if (! $vendor || ! $vendor->receivesBiddingNotifications()) {
+                continue;
+            }
+
+            try {
+                $vendor->notify(new VendorBidOutcome(
+                    request: $request,
+                    won: $winningVendorId !== null && $vendor->id === $winningVendorId,
+                    amount: $request->final_amount,
+                ));
+            } catch (\Throwable $e) {
+                // One bad address must never stop the rest of the batch.
+                Log::warning('Failed to notify vendor of bid outcome.', [
+                    'vendor_id' => $vendor->id,
+                    'old_jewellery_request_id' => $request->id,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 }
