@@ -6,6 +6,7 @@ use App\Filament\Resources\OldJewelleryRequests\Pages\ListOldJewelleryRequests;
 use App\Filament\Resources\OldJewelleryRequests\Pages\ViewOldJewelleryRequest;
 use App\Filament\Resources\OldJewelleryRequests\Schemas\OldJewelleryRequestInfolist;
 use App\Filament\Resources\OldJewelleryRequests\Tables\OldJewelleryRequestsTable;
+use App\Filament\Support\NavigationSeen;
 use App\Models\OldJewelleryRequest;
 use App\Models\Vendor;
 use BackedEnum;
@@ -22,9 +23,26 @@ class OldJewelleryRequestResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Old Jewellery';
+    protected static string|\UnitEnum|null $navigationGroup = 'Sell Jewellery';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'request_number';
+
+    public static function getNavigationBadge(): ?string
+    {
+        return NavigationSeen::badge('old-jewellery-requests', OldJewelleryRequest::query()->whereIn('status', ['pending', 'submitted']));
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'New requests waiting for approval';
+    }
 
     public static function table(Table $table): Table
     {
