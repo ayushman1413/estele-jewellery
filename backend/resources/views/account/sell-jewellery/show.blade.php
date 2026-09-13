@@ -11,7 +11,7 @@
     $isPolling = in_array($oldJewelleryRequest->status, ['pending', 'submitted', 'vendors_notified', 'bidding_active'], true);
     $stepLabels = [
         'submitted' => 'Submitted',
-        'bidding_active' => 'Bidding Active',
+        'bidding_active' => 'Approved',
         'bidding_closed' => 'Closed',
         'bid_selected' => 'Selected',
         'wallet_credited' => 'Credited',
@@ -55,16 +55,69 @@
       </p>
     @endif
 
-    <div class="mb-6 rounded-lg border border-line p-4">
-      @if ($oldJewelleryRequest->getFirstMediaUrl('image', 'thumb'))
-        <img class="mb-4 max-h-64 rounded-lg border border-line" src="{{ $oldJewelleryRequest->getFirstMediaUrl('image', 'thumb') }}" alt="Submitted jewellery">
-      @endif
+    @php
+      $statusPanel = match ($oldJewelleryRequest->status) {
+          'pending', 'submitted' => [
+              'tone' => 'border-amber-200 bg-amber-50',
+              'icon' => 'bg-amber-100 text-amber-700',
+              'title' => 'Waiting for approval',
+              'text' => 'Our team is reviewing your submission. You will see an update here as soon as it is approved.',
+              'path' => 'M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+          ],
+          'vendors_notified', 'bidding_active' => [
+              'tone' => 'border-green-200 bg-green-50',
+              'icon' => 'bg-green-100 text-green-700',
+              'title' => 'Approved',
+              'text' => 'Your jewellery has been approved and shared with our vendors for valuation.',
+              'path' => 'M5 12.5l4.5 4.5L19 7.5',
+          ],
+          'bidding_closed', 'bid_selected', 'wallet_pending' => [
+              'tone' => 'border-amber-200 bg-amber-50',
+              'icon' => 'bg-amber-100 text-amber-700',
+              'title' => 'Finalising your offer',
+              'text' => 'Bidding has closed. The best offer is being finalised and credited to your wallet.',
+              'path' => 'M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+          ],
+          'wallet_credited', 'completed' => [
+              'tone' => 'border-green-200 bg-green-50',
+              'icon' => 'bg-green-100 text-green-700',
+              'title' => 'Credited to your wallet',
+              'text' => 'Your offer has been credited. Use it on your next purchase.',
+              'path' => 'M5 12.5l4.5 4.5L19 7.5',
+          ],
+          'wallet_expired' => [
+              'tone' => 'border-red-200 bg-red-50',
+              'icon' => 'bg-red-100 text-red-700',
+              'title' => 'Wallet credit expired',
+              'text' => 'The credit from this request was not used before it expired.',
+              'path' => 'M6 6l12 12M18 6L6 18',
+          ],
+          default => [
+              'tone' => 'border-red-200 bg-red-50',
+              'icon' => 'bg-red-100 text-red-700',
+              'title' => 'Cancelled',
+              'text' => 'This request is no longer active.',
+              'path' => 'M6 6l12 12M18 6L6 18',
+          ],
+      };
+    @endphp
+
+    <div class="mb-6 rounded-xl border {{ $statusPanel['tone'] }} p-4 md:p-5">
+      <div class="flex items-start gap-3">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full {{ $statusPanel['icon'] }}">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $statusPanel['path'] }}" /></svg>
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-[15px] font-medium text-heading md:text-[16px]">{{ $statusPanel['title'] }}</p>
+          <p class="mt-1 text-[13px] leading-snug text-muted">{{ $statusPanel['text'] }}</p>
+        </div>
+      </div>
 
       @if ($oldJewelleryRequest->description)
-        <p class="mb-3 text-[13px] text-muted">{{ $oldJewelleryRequest->description }}</p>
+        <p class="mt-4 border-t border-line/60 pt-3 text-[13px] text-muted">{{ $oldJewelleryRequest->description }}</p>
       @endif
 
-      <p class="text-[12px] text-muted">Submitted {{ $oldJewelleryRequest->created_at->format('d M Y, h:i A') }}</p>
+      <p class="mt-3 text-[12px] text-muted">Submitted {{ $oldJewelleryRequest->created_at->format('d M Y, h:i A') }}</p>
     </div>
 
     @if ($oldJewelleryRequest->final_amount)
