@@ -73,7 +73,7 @@ class OtpAuthController extends Controller
         }
 
         $oldSessionId = $request->session()->getId();
-        Auth::login($user);
+        Auth::login($user, remember: true);
         $request->session()->regenerate();
         Cart::transferSession($oldSessionId, $request->session()->getId());
 
