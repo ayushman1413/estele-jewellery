@@ -9,6 +9,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CmsPageController;
 use App\Http\Controllers\CollectionController;
+use App\Http\Controllers\ExpressCheckoutController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
@@ -291,6 +292,25 @@ Route::middleware('auth')->group(function () {
         ->name('checkout.store')
         ->middleware('throttle:10,1');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Express checkout (product page "Checkout" → Shiprocket Fastrr iframe)
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/checkout/express/{product:slug}', [ExpressCheckoutController::class, 'start'])
+    ->name('checkout.express.start')
+    ->middleware('throttle:30,1');
+
+Route::get('/checkout/express', [ExpressCheckoutController::class, 'show'])
+    ->name('checkout.express');
+
+Route::get('/checkout/express/fallback', [ExpressCheckoutController::class, 'fallback'])
+    ->name('checkout.express.fallback');
+
+Route::get('/checkout/express/complete', [ExpressCheckoutController::class, 'complete'])
+    ->name('checkout.express.complete');
 
 Route::get('/checkout/pincode/{postalCode}', [CheckoutController::class, 'pincodeLookup'])
     ->name('checkout.pincode-lookup')

@@ -300,10 +300,12 @@
               {{ $product->stock_quantity > 0 ? 'Add to Cart' : 'Out of Stock' }}
             </button>
           </div>
-          <button class="w-full rounded-md border-2 border-accent bg-transparent py-3 px-6 text-center text-[13px] font-semibold uppercase tracking-[0.6px] text-accent transition-colors hover:bg-accent hover:text-white" type="submit" name="buy_now" value="1"
+          <button class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-heading py-3.5 px-6 text-center text-[13px] font-semibold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:bg-black disabled:opacity-60" type="submit" name="express" value="1" formaction="{{ route('checkout.express.start', $product) }}" data-express-submit
                   {{ $product->stock_quantity <= 0 ? 'disabled' : '' }}>
-            Buy It Now
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
+            Checkout
           </button>
+          <p class="-mt-1 text-center text-[11px] text-muted">Fast &amp; secure · UPI, cards, net banking, COD</p>
         </div>
         <div class="pdp-buy-box-spacer" aria-hidden="true"></div>
       </form>

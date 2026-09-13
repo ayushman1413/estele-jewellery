@@ -101,6 +101,10 @@ class AccountController extends Controller
             $this->clearOtherDefaults($address);
         }
 
+        if ($request->session()->pull('express_checkout_needs_address')) {
+            return redirect()->route('checkout.express')->with('success', 'Address saved — continuing to payment.');
+        }
+
         return redirect()->route('account.addresses')->with('success', 'Address added.');
     }
 

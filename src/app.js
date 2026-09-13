@@ -618,6 +618,11 @@ import './app.css';
     // handler below fire on this <form> and wipe out its contents.
     $$('[data-cart-form]').forEach(function (form) {
       form.addEventListener('submit', function (e) {
+        if (e.submitter && e.submitter.name === 'express') {
+          e.submitter.disabled = true;
+          e.submitter.textContent = 'Please wait…';
+          return;
+        }
         e.preventDefault();
         var buyNow = e.submitter && e.submitter.name === 'buy_now';
         var submitButtons = $$('button[type="submit"]', form);
