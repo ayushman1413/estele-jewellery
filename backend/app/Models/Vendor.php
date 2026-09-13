@@ -50,6 +50,27 @@ class Vendor extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Vendor $vendor) {
+            $user = $vendor->user;
+
+            if (! $user) {
+                return;
+            }
+
+            $otherRoles = $user->roles->pluck('name')
+                ->reject(fn ($name) => in_array($name, self::ACCESS_ROLES, true));
+
+            // A super_admin who was also listed as a contact keeps their
+            // account and password, only the contact role is dropped; a login
+            // that existed only for this contact goes entirely.
+            $otherRoles->isEmpty()
+                ? $user->delete()
+                : $user->syncRoles($otherRoles->all());
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -82,6 +103,6 @@ class Vendor extends Model
 
     public function routeNotificationForWhatsapp(): ?string
     {
-        return $this->whatsapp_number;
+        return $this->whatsapp_number ?: $this->mobile;
     }
 }

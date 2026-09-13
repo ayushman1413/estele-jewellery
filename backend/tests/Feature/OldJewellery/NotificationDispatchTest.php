@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\OldJewellery;
 
+use App\Models\OldJewelleryBid;
 use App\Models\OldJewelleryRequest;
 use App\Models\OldJewelleryWalletCredit;
 use App\Models\User;
@@ -75,7 +76,7 @@ class NotificationDispatchTest extends TestCase
         );
     }
 
-    public function test_vendor_without_whatsapp_number_gets_mail_only(): void
+    public function test_vendor_without_whatsapp_number_falls_back_to_mobile_for_whatsapp(): void
     {
         Notification::fake();
 
@@ -98,7 +99,7 @@ class NotificationDispatchTest extends TestCase
             $vendor,
             VendorInvitedToBid::class,
             function ($notification, $channels) {
-                return $channels === ['mail'];
+                return in_array(WhatsAppChannel::class, $channels, true) && in_array('mail', $channels, true);
             },
         );
     }
@@ -145,7 +146,7 @@ class NotificationDispatchTest extends TestCase
             'bidding_start_at' => now()->subHours(3),
             'bidding_end_at' => now(),
         ]);
-        $bid = \App\Models\OldJewelleryBid::create([
+        $bid = OldJewelleryBid::create([
             'old_jewellery_request_id' => $request->id,
             'bidder_type' => 'vendor',
             'amount' => 1000,
@@ -170,7 +171,7 @@ class NotificationDispatchTest extends TestCase
             'bidding_start_at' => now()->subHours(3),
             'bidding_end_at' => now(),
         ]);
-        $bid = \App\Models\OldJewelleryBid::create([
+        $bid = OldJewelleryBid::create([
             'old_jewellery_request_id' => $request->id,
             'bidder_type' => 'vendor',
             'amount' => 1000,

@@ -22,7 +22,7 @@ class VendorInvitedToBid extends Notification implements ShouldQueue
     {
         $channels = ['mail'];
 
-        if (filled($notifiable->whatsapp_number ?? null)) {
+        if (filled(($notifiable->whatsapp_number ?? null) ?: ($notifiable->mobile ?? null))) {
             $channels[] = WhatsAppChannel::class;
         }
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Customers\Tables;
 
 use App\Models\User;
+use Filament\Actions\DeleteAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\PaginationMode;
 use Filament\Tables\Table;
@@ -46,6 +47,12 @@ class CustomersTable
                     ->label('Joined')
                     ->dateTime('d M Y, h:i A')
                     ->sortable(),
+            ])
+            ->recordActions([
+                DeleteAction::make()
+                    ->modalHeading(fn (User $record) => "Delete {$record->name}?")
+                    ->modalDescription('Their addresses, wallet, reward submissions and jewellery requests are removed with the account. Past orders are kept for records. This cannot be undone.')
+                    ->successNotificationTitle('Customer deleted'),
             ]);
     }
 }
