@@ -22,7 +22,7 @@ class FilamentVendorOtpTest extends TestCase
         $vendor = Vendor::create(['name' => 'Acme Gold', 'mobile' => '9111111111', 'is_active' => true]);
 
         Livewire::test(EditVendor::class, ['record' => $vendor->id])
-            ->callAction('send_otp')
+            ->callAction(['verify_otp', 'send_otp'])
             ->assertHasNoActionErrors();
 
         $this->assertDatabaseHas('otp_codes', ['phone' => '9111111111']);

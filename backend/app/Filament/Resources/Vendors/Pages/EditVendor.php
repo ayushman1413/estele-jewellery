@@ -20,10 +20,9 @@ class EditVendor extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            VendorsTable::verifyOtpAction()->after(fn () => $this->refreshFormData(['mobile'])),
             VendorsTable::resendSetupLinkAction(),
-            VendorsTable::sendOtpAction(),
-            VendorsTable::verifyOtpAction()->after(fn () => $this->refreshFormData(['mobile_verified_at'])),
-            ViewAction::make(),
+            ViewAction::make()->label('Performance'),
             DeleteAction::make(),
         ];
     }
