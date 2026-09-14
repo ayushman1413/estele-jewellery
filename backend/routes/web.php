@@ -104,18 +104,18 @@ Route::middleware('guest')->group(function () {
 
     Route::post('/login', [OtpAuthController::class, 'sendCode'])
         ->name('login.send')
-        ->middleware('throttle:5,1');
+        ->middleware(['throttle:5,1,otp-send', 'throttle:otp-phone']);
 
     Route::get('/login/verify', [OtpAuthController::class, 'showVerify'])
         ->name('login.verify');
 
     Route::post('/login/verify', [OtpAuthController::class, 'verifyCode'])
         ->name('login.verify.attempt')
-        ->middleware('throttle:10,1');
+        ->middleware('throttle:10,1,otp-verify');
 
     Route::post('/login/resend', [OtpAuthController::class, 'resend'])
         ->name('login.resend')
-        ->middleware('throttle:3,1');
+        ->middleware(['throttle:3,1,otp-resend', 'throttle:otp-phone']);
 
     /*
     |--------------------------------------------------------------------------
@@ -128,7 +128,7 @@ Route::middleware('guest')->group(function () {
 
     Route::post('/register', [AuthController::class, 'register'])
         ->name('register.attempt')
-        ->middleware('throttle:10,1');
+        ->middleware('throttle:10,1,register');
 });
 
 /*

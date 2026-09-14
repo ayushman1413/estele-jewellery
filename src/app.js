@@ -1525,9 +1525,44 @@ import './app.css';
       if (!btn || btn.disabled) return;
 
       btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
       btn.dataset.originalLabel = btn.innerHTML;
-      btn.innerHTML = '<span class="btn-loading-dots"><span></span><span></span><span></span></span>';
+      btn.innerHTML = '<span class="btn-loading-dots" aria-hidden="true"><span></span><span></span><span></span></span><span class="sr-only-custom">Please wait</span>';
     });
+  });
+
+  // Back/forward cache restores the page exactly as it was mid-submit, so
+  // put the button back the way it was before the user pressed it.
+  window.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
+    $$('button[aria-busy="true"]').forEach(function (btn) {
+      if (btn.dataset.originalLabel) btn.innerHTML = btn.dataset.originalLabel;
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+    });
+  });
+
+  /* ------------------------------------------------------------------------
+     RESEND COOLDOWN — a code was just sent when this page rendered, so hold
+     the resend button for a few seconds with a visible countdown.
+     ---------------------------------------------------------------------- */
+  $$('[data-resend-cooldown]').forEach(function (btn) {
+    var seconds = parseInt(btn.dataset.resendCooldown, 10) || 0;
+    if (!seconds) return;
+
+    var label = btn.textContent;
+    btn.disabled = true;
+
+    (function tick() {
+      if (seconds <= 0) {
+        btn.disabled = false;
+        btn.textContent = label;
+        return;
+      }
+      btn.textContent = 'Resend code in ' + seconds + 's';
+      seconds -= 1;
+      setTimeout(tick, 1000);
+    })();
   });
 
 })();

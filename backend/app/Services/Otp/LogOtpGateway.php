@@ -21,11 +21,13 @@ use Illuminate\Support\Facades\Log;
  */
 class LogOtpGateway implements OtpGateway
 {
-    public function send(string $phone, string $code): void
+    public function send(string $phone, string $code): bool
     {
         Log::info('OTP requested — no SMS gateway configured, logging instead of sending', [
             'phone' => $phone,
             'code' => $code,
         ]);
+
+        return true;
     }
 }

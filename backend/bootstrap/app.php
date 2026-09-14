@@ -46,6 +46,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('media-library:clean --delete-orphaned')
             ->daily()
             ->withoutOverlapping();
+
+        $schedule->command('model:prune')
+            ->daily()
+            ->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         // Railway (and similar PaaS hosts) terminate TLS at their edge proxy and
