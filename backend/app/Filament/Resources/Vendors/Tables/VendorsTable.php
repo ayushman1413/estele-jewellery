@@ -100,8 +100,14 @@ class VendorsTable
                 .(filled($record->whatsapp_number) ? " and WhatsApp {$record->whatsapp_number}" : '')
                 .'. Any previous link stops working.')
             ->action(function (Vendor $record) {
-                if (app(PanelAccessService::class)->grant($record, isResend: true)) {
-                    Notification::make()->title("Setup link sent to {$record->email}")->success()->send();
+                try {
+                    if (app(PanelAccessService::class)->grant($record, isResend: true)) {
+                        Notification::make()->title("Setup link sent to {$record->email}")->success()->send();
+
+                        return;
+                    }
+                } catch (\RuntimeException $e) {
+                    Notification::make()->title($e->getMessage())->danger()->send();
 
                     return;
                 }

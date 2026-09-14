@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Vendors\Schemas;
 
+use App\Models\User;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -36,7 +37,26 @@ class VendorForm
                 ->description('Optional. With an email the vendor gets a link to set a password and can see their requests in this panel.')
                 ->columns(2)
                 ->schema([
-                    TextInput::make('email')->email()->unique(ignoreRecord: true)->maxLength(255),
+                    TextInput::make('email')
+                        ->email()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(255)
+                        // A vendor invite grants a real panel login for this
+                        // address — if that email already belongs to someone
+                        // else's account (a customer, staff, another vendor's
+                        // login), the setup link would hand that account's
+                        // password to whoever receives this invite instead.
+                        ->rule(function ($record) {
+                            return function (string $attribute, $value, \Closure $fail) use ($record) {
+                                $ownedByThisVendor = $record?->user_id;
+
+                                $existing = User::where('email', $value)->first();
+
+                                if ($existing && $existing->id !== $ownedByThisVendor) {
+                                    $fail('That email already belongs to a different account. Use a different address for this vendor.');
+                                }
+                            };
+                        }),
                     Placeholder::make('panel_login')
                         ->label('Status')
                         ->content(fn ($record) => match (true) {

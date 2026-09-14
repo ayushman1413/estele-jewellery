@@ -51,19 +51,27 @@ class EditVendor extends EditRecord
 
         $service = app(PanelAccessService::class);
 
-        if (! $this->shouldInvite) {
-            // Keeps the linked user's role in step when the admin flips
-            // between Vendor and Admin, without mailing them again.
-            $service->grantWithoutNotifying($this->record);
+        try {
+            if (! $this->shouldInvite) {
+                // Keeps the linked user's role in step when the admin flips
+                // between Vendor and Admin, without mailing them again.
+                $service->grantWithoutNotifying($this->record);
 
-            return;
-        }
+                return;
+            }
 
-        if ($service->grant($this->record)) {
+            if ($service->grant($this->record)) {
+                Notification::make()
+                    ->title('Setup link sent')
+                    ->body("A password setup link was sent to {$this->record->email}.")
+                    ->success()
+                    ->send();
+            }
+        } catch (\RuntimeException $e) {
             Notification::make()
-                ->title('Setup link sent')
-                ->body("A password setup link was sent to {$this->record->email}.")
-                ->success()
+                ->title('Login was not updated')
+                ->body($e->getMessage())
+                ->danger()
                 ->send();
         }
     }

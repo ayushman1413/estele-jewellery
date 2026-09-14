@@ -35,7 +35,17 @@ class CreateVendor extends CreateRecord
             return;
         }
 
-        $sent = app(PanelAccessService::class)->grant($this->record);
+        try {
+            $sent = app(PanelAccessService::class)->grant($this->record);
+        } catch (\RuntimeException $e) {
+            Notification::make()
+                ->title('Vendor saved, but no login was created')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         if ($sent) {
             Notification::make()
