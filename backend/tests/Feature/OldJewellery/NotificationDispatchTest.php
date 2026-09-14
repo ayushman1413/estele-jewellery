@@ -47,6 +47,33 @@ class NotificationDispatchTest extends TestCase
         Notification::assertSentTo($vendor, VendorInvitedToBid::class);
     }
 
+    public function test_the_vendor_invite_link_points_at_the_bid_page_not_the_json_api(): void
+    {
+        Notification::fake();
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
+            'request_number' => 'OJ-2026-000121',
+            'status' => 'submitted',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+        $vendor = Vendor::create(['name' => 'V', 'mobile' => '9000000121', 'email' => 'v@example.com', 'is_active' => true]);
+
+        app(VendorInvitationService::class)->inviteAll($request);
+
+        Notification::assertSentTo($vendor, VendorInvitedToBid::class, function (VendorInvitedToBid $notification) {
+            $mail = $notification->toMail($notification->invitation->vendor);
+            $actionUrl = $mail->actionUrl;
+
+            $this->assertStringContainsString('/old-jewellery/vendor/', $actionUrl);
+            $this->assertStringNotContainsString('/api/', $actionUrl);
+
+            return true;
+        });
+    }
+
     public function test_vendor_with_whatsapp_number_receives_whatsapp_channel(): void
     {
         Notification::fake();

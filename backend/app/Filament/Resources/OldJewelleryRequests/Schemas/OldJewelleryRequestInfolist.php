@@ -220,6 +220,7 @@ class OldJewelleryRequestInfolist
             'admin_bid_submitted' => 'Admin submitted valuation',
             'bidding_closed' => 'Bidding closed',
             'no_valid_bids' => 'No valid bids — cancelled',
+            'no_active_vendors' => 'No active vendors — cancelled',
             'bid_selected' => 'Highest bid selected',
             'wallet_credited' => 'Wallet credited',
             'wallet_expired' => 'Wallet credit expired',

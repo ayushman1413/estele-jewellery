@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Filament\Resources\OldJewelleryRequests\OldJewelleryRequestResource;
 use App\Models\OldJewelleryRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,10 +22,17 @@ class AdminNewOldJewelleryRequest extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject("New old jewellery request {$this->oldJewelleryRequest->request_number}")
-            ->line("A customer submitted a new old jewellery request: {$this->oldJewelleryRequest->request_number}.")
-            ->line("Bidding closes at {$this->oldJewelleryRequest->bidding_end_at->format('d M Y, h:i A')}.")
-            ->action('Review in admin', url("/admin/old-jewellery-requests/{$this->oldJewelleryRequest->id}"));
+        $request = $this->oldJewelleryRequest;
+        $message = (new MailMessage)
+            ->subject("New old jewellery request {$request->request_number}")
+            ->line("A customer submitted a new old jewellery request: {$request->request_number}.");
+
+        if ($request->status === 'cancelled') {
+            $message->line('It was cancelled immediately — there are no active vendors to invite. Activate a vendor and ask the customer to resubmit, or follow up directly.');
+        } else {
+            $message->line("Bidding closes at {$request->bidding_end_at->format('d M Y, h:i A')}.");
+        }
+
+        return $message->action('Review in admin', OldJewelleryRequestResource::getUrl('view', ['record' => $request]));
     }
 }

@@ -31,7 +31,11 @@
 
     @if ($isCancelled)
       <div class="mb-6 rounded-lg border border-salebadge bg-red-50 p-4 text-[13px] text-salebadge">
-        This request was cancelled — no valid bids were received before the bidding window closed.
+        @if (($cancelReason ?? null) === 'no_active_vendors')
+          This request was cancelled — no vendors are available to bid right now. Please try submitting again shortly, or contact support for help.
+        @else
+          This request was cancelled — no valid bids were received before the bidding window closed.
+        @endif
       </div>
     @else
       <div class="mb-8 flex items-center justify-between gap-1" data-stepper>
