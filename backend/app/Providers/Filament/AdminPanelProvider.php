@@ -63,7 +63,6 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 'Sell Jewellery',
                 'Sales',
-                'Wallet',
                 'Content',
                 'Team',
             ])

@@ -16,7 +16,7 @@ class OldJewelleryWalletCreditResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 
-    protected static ?string $navigationLabel = 'Credits';
+    protected static ?string $navigationLabel = 'Credit';
 
     protected static ?string $modelLabel = 'Old Jewellery Credit';
 

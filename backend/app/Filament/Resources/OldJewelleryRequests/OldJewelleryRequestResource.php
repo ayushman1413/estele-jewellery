@@ -23,6 +23,8 @@ class OldJewelleryRequestResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
+    protected static ?string $navigationLabel = 'Old Jewellery';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Sell Jewellery';
 
     protected static ?int $navigationSort = 1;
