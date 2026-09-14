@@ -626,7 +626,13 @@ import './app.css';
         e.preventDefault();
         var buyNow = e.submitter && e.submitter.name === 'buy_now';
         var submitButtons = $$('button[type="submit"]', form);
+        var clicked = e.submitter && e.submitter.type === 'submit' ? e.submitter : submitButtons[0];
+        var originalLabel = clicked ? clicked.innerHTML : null;
+
         submitButtons.forEach(function (btn) { btn.disabled = true; });
+        if (clicked) {
+          clicked.innerHTML = '<span class="btn-loading-dots" aria-hidden="true"><span></span><span></span><span></span></span><span class="sr-only-custom">Adding…</span>';
+        }
 
         request(form.getAttribute('action'), { method: 'POST', body: new FormData(form) })
           .then(function (data) {
@@ -643,6 +649,9 @@ import './app.css';
           })
           .finally(function () {
             submitButtons.forEach(function (btn) { btn.disabled = false; });
+            if (clicked && originalLabel !== null) {
+              clicked.innerHTML = originalLabel;
+            }
           });
       });
     });

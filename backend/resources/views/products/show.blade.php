@@ -290,10 +290,10 @@
 
         <div class="pdp-buy-box mb-3 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row gap-3">
-            <div class="inline-flex h-12 w-32 shrink-0 items-center justify-between rounded-md border border-line-strong bg-white px-2 shadow-sm" data-qty>
-              <button class="grid h-8 w-8 place-items-center rounded text-[16px] font-semibold text-heading transition-colors hover:bg-warmbeige" type="button" data-qty-minus aria-label="Decrease quantity">&minus;</button>
-              <input class="w-10 border-0 text-center font-medium text-[14px] text-heading outline-none" type="number" name="quantity" value="1" min="1" aria-label="Quantity">
-              <button class="grid h-8 w-8 place-items-center rounded text-[16px] font-semibold text-heading transition-colors hover:bg-warmbeige" type="button" data-qty-plus aria-label="Increase quantity">+</button>
+            <div class="inline-flex h-12 w-36 shrink-0 items-center justify-between rounded-md border border-line-strong bg-white px-1 shadow-sm" data-qty>
+              <button class="grid h-11 w-10 place-items-center rounded text-[16px] font-semibold text-heading transition-colors hover:bg-warmbeige" type="button" data-qty-minus aria-label="Decrease quantity">&minus;</button>
+              <input class="w-10 border-0 text-center font-medium text-base text-heading outline-none" type="number" name="quantity" value="1" min="1" aria-label="Quantity">
+              <button class="grid h-11 w-10 place-items-center rounded text-[16px] font-semibold text-heading transition-colors hover:bg-warmbeige" type="button" data-qty-plus aria-label="Increase quantity">+</button>
             </div>
             <button class="flex-1 rounded-md bg-accent py-3.5 px-6 text-center text-[13px] font-semibold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:bg-accent-dark" type="submit"
                     {{ $product->stock_quantity <= 0 ? 'disabled' : '' }}>
