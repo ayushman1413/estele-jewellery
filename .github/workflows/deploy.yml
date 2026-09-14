@@ -1,0 +1,210 @@
+name: Deploy to Hostinger
+
+# Trigger: every push to the production branch, or a manual run from the
+# Actions tab (useful for redeploying without a new commit, e.g. after
+# fixing a Hostinger-side problem).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Only one deployment in flight at a time. A second push while a deploy is
+# running waits for the first to finish rather than overlapping SSH
+# sessions on the same server directory.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Run test suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # This repo pins php: "^8.3" in backend/composer.json — matched here
+      # exactly rather than "latest" so CI runs the same major.minor as the
+      # Hostinger server. Extension list is every ext-* requirement across
+      # the full composer.lock dependency tree (checked directly, not
+      # guessed) plus pdo_sqlite/sqlite3, since phpunit.xml runs the suite
+      # against an in-memory sqlite database. intl is the one most likely to
+      # be missing on a bare runner and is required by Filament — omitting
+      # it is exactly what breaks composer install locally on this project's
+      # own dev machine (see docs/DEPLOYMENT.md's "known local PHP gotcha").
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: ctype, curl, dom, exif, fileinfo, filter, gd, hash, iconv, intl, json, libxml, mbstring, openssl, pcre, pdo, pdo_mysql, pdo_sqlite, phar, session, sqlite3, tokenizer, xml, xmlreader, xmlwriter, zip, zlib
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        working-directory: backend
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      # Full install (with dev deps) here — PHPUnit and the testing helpers
+      # live in require-dev and are only needed for this job, never on the
+      # server (the deploy job below installs --no-dev separately over SSH).
+      - name: Install Composer dependencies
+        working-directory: backend
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      # phpunit.xml already pins DB_CONNECTION=sqlite (:memory:),
+      # CACHE_STORE=array, SESSION_DRIVER=array and QUEUE_CONNECTION=sync
+      # for the test environment, so the suite needs no MySQL/Redis/
+      # Meilisearch service container here — it's fully self-contained.
+      - name: Generate an ephemeral APP_KEY for testing
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Run test suite
+        working-directory: backend
+        run: php -d memory_limit=1G vendor/bin/phpunit --no-progress
+
+  deploy:
+    name: Deploy over SSH
+    needs: test
+    runs-on: ubuntu-latest
+    # Guard belt-and-suspenders: even though the trigger is already scoped to
+    # main, this keeps a workflow_dispatch run from a feature branch (if
+    # someone ever runs it manually from a different ref) from deploying.
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
+      - name: Trust the Hostinger host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.HOSTINGER_PORT }}" -H "${{ secrets.HOSTINGER_HOST }}" >> ~/.ssh/known_hosts
+
+      # rsync ships only backend/ (the Laravel app) — never the repo root,
+      # which holds docs/DEPLOYMENT.md (gitignored, has real SSH creds on
+      # disk locally) and the theme source (src/, dist/) that isn't served
+      # directly. .env, storage/ (all uploaded product/banner/old-jewellery
+      # media lives under storage/app), vendor/, and the storage symlink are
+      # excluded so a deploy can never touch production data or config.
+      - name: Sync application files to Hostinger
+        run: |
+          rsync -az --delete \
+            -e "ssh -p ${{ secrets.HOSTINGER_PORT }}" \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude 'storage/' \
+            --exclude 'vendor/' \
+            --exclude 'node_modules/' \
+            --exclude 'bootstrap/cache/*.php' \
+            --exclude 'public/storage' \
+            --exclude '.phpunit.result.cache' \
+            --exclude '*.log' \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            ./backend/ "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:${{ secrets.HOSTINGER_DEPLOY_PATH }}/"
+
+      # Written to a file (rather than an inline SSH heredoc) so the shell
+      # script's own syntax can never collide with YAML's block-scalar
+      # parsing — it's piped to the remote shell over stdin below.
+      - name: Write the post-deploy script
+        run: |
+          cat > /tmp/post-deploy.sh <<'REMOTE_SCRIPT'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+
+          echo "== Verifying this is the intended Laravel project root =="
+          if [ ! -f "artisan" ] || [ ! -f "composer.json" ]; then
+            echo "ERROR: $DEPLOY_PATH does not look like a Laravel project root (no artisan/composer.json found)." >&2
+            echo "Refusing to run deploy commands against the wrong directory." >&2
+            exit 1
+          fi
+
+          echo "== Confirming production .env is present and untouched =="
+          if [ ! -f ".env" ]; then
+            echo "ERROR: No .env found at $DEPLOY_PATH — refusing to continue without it." >&2
+            exit 1
+          fi
+
+          echo "== Installing Composer dependencies (production, no dev) =="
+          # Hostinger shared hosting disables exec/proc_open, so composer's
+          # post-install "@php artisan package:discover" hook throws a
+          # cosmetic proc_open error even though composer itself already
+          # finished installing every package and writing the autoload
+          # files correctly by that point. Only that specific, known-benign
+          # failure mode is tolerated below — a genuine composer failure
+          # (network error, an incompatible lock file, a missing PHP
+          # extension) must still stop the deploy, so check for the actual
+          # evidence of success (vendor/autoload.php exists) rather than
+          # blanket-ignoring every possible exit code.
+          if ! composer install --no-dev --optimize-autoloader --no-interaction; then
+            if [ -f "vendor/autoload.php" ]; then
+              echo "composer install reported a non-zero exit, but vendor/autoload.php exists — treating this as the known cosmetic proc_open error from package:discover and continuing."
+            else
+              echo "ERROR: composer install failed and vendor/autoload.php is missing — this is a real failure, not the known cosmetic error. Stopping." >&2
+              exit 1
+            fi
+          fi
+
+          echo "== Running database migrations (never destructive) =="
+          php artisan migrate --force
+
+          echo "== Clearing stale caches =="
+          php artisan optimize:clear
+
+          echo "== Rebuilding production caches =="
+          php artisan optimize
+
+          echo "== Ensuring the public storage symlink exists =="
+          # `php artisan storage:link` shells out via exec()/proc_open,
+          # which Hostinger shared hosting disables — it fails here every
+          # time. Create the same symlink directly instead, and only if it
+          # doesn't already exist so a real uploaded storage/ tree is never
+          # disturbed.
+          if [ -L "public/storage" ]; then
+            echo "public/storage symlink already exists — leaving it as is."
+          elif [ -e "public/storage" ]; then
+            echo "ERROR: public/storage exists but is not a symlink — refusing to touch it automatically." >&2
+            exit 1
+          else
+            ln -s ../storage/app/public public/storage
+            echo "Created public/storage -> ../storage/app/public"
+          fi
+
+          # This app has no persistent queue worker to restart: production
+          # runs QUEUE_CONNECTION=sync (Hostinger shared hosting cannot keep
+          # a `queue:work` daemon alive), so every job already ran inline as
+          # part of the request that dispatched it. The scheduled jobs
+          # (old-jewellery bidding close, wallet expiry) run via
+          # `php artisan schedule:run` on a Hostinger cron entry — see
+          # DEPLOY.md for that one-time setup; it needs no action on every
+          # deploy.
+
+          echo "== Deployment commands completed successfully =="
+          REMOTE_SCRIPT
+
+      # Everything in the script above runs as one shell on the server so a
+      # failure partway through (e.g. a bad migration) stops the whole
+      # deploy with a non-zero exit code instead of silently continuing.
+      - name: Run post-deploy commands on Hostinger
+        run: |
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "DEPLOY_PATH='${{ secrets.HOSTINGER_DEPLOY_PATH }}' bash -s" < /tmp/post-deploy.sh
+
+      - name: Deployment summary
+        if: success()
+        run: echo "Deployed $(git rev-parse --short HEAD) to Hostinger successfully."

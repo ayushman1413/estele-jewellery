@@ -25,8 +25,15 @@ class OtpAuthController extends Controller
             'phone' => ['required', 'digits_between:10,15'],
         ]);
 
-        $this->otp->issue($validated['phone']);
-        $request->session()->put('otp_phone', $validated['phone']);
+        $phone = OtpManager::normalisePhone($validated['phone']);
+
+        if (! $this->otp->issue($phone)) {
+            throw ValidationException::withMessages([
+                'phone' => 'We could not send the code right now. Please try again in a moment.',
+            ]);
+        }
+
+        $request->session()->put('otp_phone', $phone);
 
         return redirect()->route('login.verify');
     }
@@ -34,7 +41,10 @@ class OtpAuthController extends Controller
     public function showVerify(Request $request)
     {
         $phone = $request->session()->get('otp_phone');
-        abort_unless($phone, 404);
+
+        if (! $phone) {
+            return $this->startOver();
+        }
 
         return view('auth.login-verify', ['phone' => $phone]);
     }
@@ -42,7 +52,10 @@ class OtpAuthController extends Controller
     public function verifyCode(Request $request): RedirectResponse
     {
         $phone = $request->session()->get('otp_phone');
-        abort_unless($phone, 404);
+
+        if (! $phone) {
+            return $this->startOver();
+        }
 
         $validated = $request->validate([
             'code' => ['required', 'digits:6'],
@@ -73,7 +86,7 @@ class OtpAuthController extends Controller
         }
 
         $oldSessionId = $request->session()->getId();
-        Auth::login($user);
+        Auth::login($user, remember: true);
         $request->session()->regenerate();
         Cart::transferSession($oldSessionId, $request->session()->getId());
 
@@ -83,10 +96,20 @@ class OtpAuthController extends Controller
     public function resend(Request $request): RedirectResponse
     {
         $phone = $request->session()->get('otp_phone');
-        abort_unless($phone, 404);
 
-        $this->otp->issue($phone);
+        if (! $phone) {
+            return $this->startOver();
+        }
+
+        if (! $this->otp->issue($phone)) {
+            return back()->with('error', 'We could not send a new code right now. Please try again in a moment.');
+        }
 
         return back()->with('success', 'A new code has been sent.');
+    }
+
+    private function startOver(): RedirectResponse
+    {
+        return redirect()->route('login')->with('error', 'Please enter your mobile number again.');
     }
 }

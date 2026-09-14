@@ -68,15 +68,20 @@ class FilamentVendorPerformanceTest extends TestCase
             ->assertSee('100%'); // win rate: 1 bid submitted, 1 won
     }
 
-    public function test_mobile_verified_column_appears_on_the_list(): void
+    public function test_mobile_verification_state_is_visible_on_the_list(): void
     {
         $admin = $this->makeAdmin();
         Vendor::create(['name' => 'Unverified Co', 'mobile' => '9222222222', 'is_active' => true]);
+        Vendor::create(['name' => 'Verified Co', 'mobile' => '9333333333', 'is_active' => true, 'mobile_verified_at' => now()]);
 
+        // The standalone "Verified" column was folded into the mobile column,
+        // which carries a check badge and a tooltip saying which state it is.
         $this->actingAs($admin)
             ->get('/admin/vendors')
             ->assertOk()
-            ->assertSee('Verified');
+            ->assertSee('9222222222')
+            ->assertSee('9333333333')
+            ->assertSee('Mobile verified');
     }
 
     private function makeAdmin(): User

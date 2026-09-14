@@ -29,9 +29,9 @@
           </div>
           <div class="flex items-center justify-between">
             <div class="inline-flex items-center border border-line-strong" data-cart-qty-stepper data-item-id="{{ $item->id }}" data-max="{{ $item->availableStock() }}">
-              <button class="grid h-8 w-8 place-items-center text-[15px] text-heading transition-colors hover:text-accent" type="button" data-cart-qty-decrement aria-label="Decrease quantity">&minus;</button>
+              <button class="grid h-10 w-10 place-items-center text-[15px] text-heading transition-colors hover:text-accent" type="button" data-cart-qty-decrement aria-label="Decrease quantity">&minus;</button>
               <span class="grid w-8 place-items-center text-[13px]" data-cart-qty-value>{{ $item->quantity }}</span>
-              <button class="grid h-8 w-8 place-items-center text-[15px] text-heading transition-colors hover:text-accent" type="button" data-cart-qty-increment aria-label="Increase quantity">&plus;</button>
+              <button class="grid h-10 w-10 place-items-center text-[15px] text-heading transition-colors hover:text-accent" type="button" data-cart-qty-increment aria-label="Increase quantity">&plus;</button>
             </div>
             <button class="text-[11px] uppercase tracking-[0.3px] text-muted transition-colors hover:text-salebadge" type="button" data-cart-remove data-item-id="{{ $item->id }}">
               Remove

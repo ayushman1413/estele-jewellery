@@ -41,6 +41,21 @@ return [
         'pickup_pincode' => env('SHIPROCKET_PICKUP_PINCODE'),
     ],
 
+    // Shiprocket Fastrr (headless) Checkout — the express "Checkout" button on
+    // product pages opens its hosted iframe for address + payment.
+    'fastrr' => [
+        'api_key' => env('FASTRR_API_KEY'),
+        'api_secret' => env('FASTRR_API_SECRET'),
+        'base_url' => env('FASTRR_BASE_URL', 'https://checkout-api.shiprocket.com'),
+        'token_path' => env('FASTRR_TOKEN_PATH', '/api/v1/access-token'),
+        // Dot-path of the token inside the access-token response body.
+        'token_key' => env('FASTRR_TOKEN_KEY', 'token'),
+        'script_url' => env('FASTRR_SCRIPT_URL', 'https://fastrr-boost-ui.fastrr.com/assets/js/channels/custom.js'),
+        // Shared secret Fastrr sends back when calling our catalog and
+        // order-webhook endpoints; blank means those endpoints are open.
+        'catalog_token' => env('FASTRR_CATALOG_TOKEN'),
+    ],
+
     'razorpay' => [
         'key_id' => env('RAZORPAY_KEY_ID'),
         'key_secret' => env('RAZORPAY_KEY_SECRET'),

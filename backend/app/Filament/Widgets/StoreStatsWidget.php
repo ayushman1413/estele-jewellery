@@ -13,6 +13,23 @@ use Illuminate\Support\Carbon;
 
 class StoreStatsWidget extends StatsOverviewWidget
 {
+    // CanPoll defaults every stats widget to a 5-second refresh — fine for a
+    // handful of cheap counts, not for ~7 aggregate queries (several of them
+    // sum()/count() over 30/60-day windows) re-run per open dashboard tab
+    // against the production database. These numbers don't need to be
+    // that fresh; a minute is still far tighter than anyone reloading the
+    // dashboard by hand would notice.
+    protected ?string $pollingInterval = '60s';
+
+    // Without this, every panel login that can reach the dashboard at all
+    // sees store-wide revenue, orders and customer counts — including a
+    // vendor contact's own login. The permission is already seeded
+    // (ShieldSeeder) for super_admin; it was just never checked here.
+    public static function canView(): bool
+    {
+        return (bool) auth()->user()?->can('View:StoreStatsWidget');
+    }
+
     /**
      * Thin public wrapper around the protected getStats() so feature tests
      * can assert the computed values directly (Filament widgets aren't

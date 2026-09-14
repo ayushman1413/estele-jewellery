@@ -48,6 +48,27 @@ class VendorInvitationService
                 ->where('access_role', Vendor::ACCESS_ROLE_VENDOR)
                 ->get();
 
+            if ($vendors->isEmpty()) {
+                // With nobody to bid, the request cannot progress on its own
+                // — left as 'submitted' it would sit invisible forever (the
+                // close job only looks at 'bidding_active', and the old admin
+                // email was gated on there being at least one invitation).
+                // Cancel it immediately with a distinct reason so the
+                // customer's status page and the admin panel both show
+                // something true, instead of a silent, permanent hang.
+                $locked->update(['status' => 'cancelled']);
+
+                OldJewelleryActivityLog::create([
+                    'old_jewellery_request_id' => $locked->id,
+                    'actor_type' => 'system',
+                    'action' => 'no_active_vendors',
+                    'from_status' => 'submitted',
+                    'to_status' => 'cancelled',
+                ]);
+
+                return collect();
+            }
+
             $created = $vendors->map(function (Vendor $vendor) use ($locked) {
                 $plaintext = Str::random(64);
 
@@ -62,25 +83,23 @@ class VendorInvitationService
                 return ['invitation' => $invitation, 'plaintext_token' => $plaintext];
             });
 
-            if ($created->isNotEmpty()) {
-                // Vendors being notified and the bidding window opening are
-                // the same real-world moment — go straight to 'bidding_active'
-                // so CloseExpiredOldJewelleryBiddingJob (which filters on
-                // status = 'bidding_active') can actually find this request
-                // once its bidding window expires. See
-                // OldJewelleryRequest::ALLOWED_TRANSITIONS for the transition
-                // map this relies on.
-                $locked->update(['status' => 'bidding_active']);
+            // Vendors being notified and the bidding window opening are
+            // the same real-world moment — go straight to 'bidding_active'
+            // so CloseExpiredOldJewelleryBiddingJob (which filters on
+            // status = 'bidding_active') can actually find this request
+            // once its bidding window expires. See
+            // OldJewelleryRequest::ALLOWED_TRANSITIONS for the transition
+            // map this relies on.
+            $locked->update(['status' => 'bidding_active']);
 
-                OldJewelleryActivityLog::create([
-                    'old_jewellery_request_id' => $locked->id,
-                    'actor_type' => 'system',
-                    'action' => 'vendors_notified',
-                    'from_status' => 'submitted',
-                    'to_status' => 'bidding_active',
-                    'metadata' => ['vendor_count' => $created->count()],
-                ]);
-            }
+            OldJewelleryActivityLog::create([
+                'old_jewellery_request_id' => $locked->id,
+                'actor_type' => 'system',
+                'action' => 'vendors_notified',
+                'from_status' => 'submitted',
+                'to_status' => 'bidding_active',
+                'metadata' => ['vendor_count' => $created->count()],
+            ]);
 
             return $created;
         });
@@ -106,11 +125,17 @@ class VendorInvitationService
             }
         }
 
+        // Admins are told about every new request, whether or not there was
+        // anyone to invite — a request cancelled here for lack of active
+        // vendors still needs an admin's attention (activate a vendor,
+        // follow up with the customer), and staying silent about it is how
+        // it went unnoticed before.
+        //
         // Guard against an unseeded super_admin role (fresh/test environments
         // before ShieldSeeder runs): User::role() throws RoleDoesNotExist
         // otherwise, which would incorrectly block the vendor notifications
         // above even though they already succeeded.
-        if ($results->isNotEmpty() && Role::where(['name' => 'super_admin', 'guard_name' => 'web'])->exists()) {
+        if (Role::where(['name' => 'super_admin', 'guard_name' => 'web'])->exists()) {
             $admins = User::role('super_admin')->whereNotNull('email')->get();
             Notification::send($admins, new AdminNewOldJewelleryRequest($request->fresh()));
         }

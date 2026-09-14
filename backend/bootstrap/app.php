@@ -1,11 +1,20 @@
 <?php
 
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\VendorTokenAuth;
+use App\Http\Middleware\VerifyFastrrRequest;
+use App\Jobs\CloseExpiredOldJewelleryBiddingJob;
+use App\Jobs\ExpireOldJewelleryWalletCreditsJob;
+use App\Jobs\SendOldJewelleryWalletReminderJob;
 use App\Models\Redirect;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Sentry\Laravel\Integration;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -16,20 +25,30 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
-        $schedule->job(new \App\Jobs\CloseExpiredOldJewelleryBiddingJob())
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->job(new CloseExpiredOldJewelleryBiddingJob)
             ->everyFiveMinutes()
             ->name('old-jewellery:close-expired-bidding')
             ->withoutOverlapping();
 
-        $schedule->job(new \App\Jobs\ExpireOldJewelleryWalletCreditsJob())
+        $schedule->job(new ExpireOldJewelleryWalletCreditsJob)
             ->daily()
             ->name('old-jewellery:expire-wallet-credits')
             ->withoutOverlapping();
 
-        $schedule->job(new \App\Jobs\SendOldJewelleryWalletReminderJob())
+        $schedule->job(new SendOldJewelleryWalletReminderJob)
             ->daily()
             ->name('old-jewellery:wallet-expiry-reminders')
+            ->withoutOverlapping();
+
+        // Safety net: any media row whose model is gone (and its files) is
+        // removed, so nothing deleted keeps occupying disk.
+        $schedule->command('media-library:clean --delete-orphaned')
+            ->daily()
+            ->withoutOverlapping();
+
+        $schedule->command('model:prune')
+            ->daily()
             ->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
@@ -56,7 +75,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // set by default. Covers the storefront; the admin panel gets the
         // same middleware separately in AdminPanelProvider since Filament
         // defines its own middleware stack, not this one.
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append(SecurityHeaders::class);
 
         // Mobile OTP is the only login method — any 'auth'-gated route hit
         // while logged out (checkout, /account) sends the guest to /login to
@@ -73,7 +92,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // authorization boundary for token-link API access (see
         // App\Http\Middleware\VendorTokenAuth).
         $middleware->alias([
-            'vendor.token' => \App\Http\Middleware\VendorTokenAuth::class,
+            'vendor.token' => VendorTokenAuth::class,
+            'fastrr' => VerifyFastrrRequest::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -85,7 +105,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // renders Laravel's default {message, errors} shape, which breaks
         // the {success, message, errors} envelope every other api/* error
         // path (ApiController::error(), VendorTokenAuth, ...) uses.
-        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, Request $request) {
+        $exceptions->render(function (ValidationException $e, Request $request) {
             if (! $request->is('api/*')) {
                 return null;
             }
@@ -104,7 +124,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // — a plain Route::fallback() never sees that, only a genuinely
         // unmatched path (NotFoundHttpException). Returning null falls
         // through to Laravel's normal 404 rendering (the branded 404 view).
-        $redirectCheck = function (\Throwable $e, Request $request) {
+        $redirectCheck = function (Throwable $e, Request $request) {
             if ($request->method() !== 'GET' || $request->is('api/*')) {
                 return null;
             }
@@ -126,5 +146,5 @@ return Application::configure(basePath: dirname(__DIR__))
         // disabled (never dials out). Becomes live the moment a real DSN from
         // a Sentry account is added to .env — same "ready but inactive until a
         // real value is provided" pattern as tracking_head_scripts.
-        \Sentry\Laravel\Integration::handles($exceptions);
+        Integration::handles($exceptions);
     })->create();

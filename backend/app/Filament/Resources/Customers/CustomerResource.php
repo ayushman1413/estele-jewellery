@@ -27,6 +27,8 @@ class CustomerResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = 'Sales';
 
+    protected static ?int $navigationSort = 1;
+
     public static function table(Table $table): Table
     {
         return CustomersTable::configure($table);

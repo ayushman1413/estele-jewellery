@@ -5,8 +5,6 @@ namespace App\Notifications;
 use App\Models\Setting;
 use App\Models\Vendor;
 use App\Notifications\Channels\WhatsAppChannel;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Cache;
@@ -16,11 +14,13 @@ use Illuminate\Support\Facades\Cache;
  * "resend invite". Carries the one-time link the recipient uses to choose
  * their own password — we never generate a password for them, so no
  * credential ever travels over mail or WhatsApp.
+ *
+ * Deliberately not queued: the vendor should have the link the moment the
+ * admin saves, and a delivery failure must surface in that same request so
+ * the admin sees it instead of a false "sent".
  */
-class PanelAccessInvitation extends Notification implements ShouldQueue
+class PanelAccessInvitation extends Notification
 {
-    use Queueable;
-
     public function __construct(
         public readonly Vendor $vendor,
         public readonly string $setupUrl,
@@ -31,7 +31,7 @@ class PanelAccessInvitation extends Notification implements ShouldQueue
     {
         $channels = ['mail'];
 
-        if (filled($notifiable->whatsapp_number ?? null)) {
+        if (filled(($notifiable->whatsapp_number ?? null) ?: ($notifiable->mobile ?? null))) {
             $channels[] = WhatsAppChannel::class;
         }
 

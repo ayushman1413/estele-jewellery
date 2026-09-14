@@ -23,11 +23,13 @@ class PanelAccessService
     /**
      * Create (or reattach) the login for a vendor and send the setup link.
      * Safe to call repeatedly: an existing linked user is reused rather than
-     * duplicated, and an existing user with the same email is adopted rather
-     * than colliding on the unique index.
+     * duplicated.
      *
      * Returns false when the vendor has no email — the link has nowhere to go,
      * and the vendor still works through its signed invitation token.
+     *
+     * @throws \RuntimeException if the email belongs to a user this vendor
+     *         does not already own — see ensureUser().
      */
     public function grant(Vendor $vendor, bool $isResend = false): bool
     {
@@ -49,6 +51,14 @@ class PanelAccessService
         return $this->ensureUser($vendor) !== null;
     }
 
+    /**
+     * Never adopts a user this vendor doesn't already own. A brand-new vendor
+     * row always gets a brand-new user — reusing whoever else happens to hold
+     * that email (a customer, staff, or a super_admin) would hand that
+     * account's login to whoever the admin sends the invite to.
+     *
+     * @throws \RuntimeException if the email is already someone else's login.
+     */
     private function ensureUser(Vendor $vendor): ?User
     {
         if (blank($vendor->email)) {
@@ -56,15 +66,31 @@ class PanelAccessService
         }
 
         return DB::transaction(function () use ($vendor) {
-            $user = $vendor->user
-                ?? User::where('email', $vendor->email)->first();
+            $user = $vendor->user;
 
             if ($user) {
                 // Keep the login's address in step with the vendor record, so
                 // a corrected email does not leave the user signing in with
-                // the old one.
+                // the old one — but only once we know no other account is
+                // already sitting on that address.
+                $collision = User::where('email', $vendor->email)
+                    ->whereKeyNot($user->id)
+                    ->exists();
+
+                if ($collision) {
+                    throw new \RuntimeException(
+                        'That email already belongs to a different account. Use a different address for this vendor.'
+                    );
+                }
+
                 $user->forceFill(['email' => $vendor->email])->save();
             } else {
+                if (User::where('email', $vendor->email)->exists()) {
+                    throw new \RuntimeException(
+                        'That email already belongs to an existing account. Use a different address for this vendor.'
+                    );
+                }
+
                 $user = User::create([
                     'name' => $vendor->name,
                     'email' => $vendor->email,

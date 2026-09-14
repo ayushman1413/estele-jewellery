@@ -12,6 +12,12 @@ class HomepageBlockObserver
         Cache::tags(['home'])->flush();
     }
 
+    public function deleting(HomepageBlock $block): void
+    {
+        // Items carry images; the FK cascade alone would orphan them.
+        $block->items()->get()->each->delete();
+    }
+
     public function deleted(HomepageBlock $block): void
     {
         Cache::tags(['home'])->flush();

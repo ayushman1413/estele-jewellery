@@ -59,7 +59,7 @@ class AuthController extends Controller
         // Log the new user in automatically.
         $oldSessionId = $request->session()->getId();
 
-        Auth::login($user);
+        Auth::login($user, remember: true);
 
         $request->session()->regenerate();
 

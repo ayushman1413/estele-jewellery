@@ -30,7 +30,7 @@
     <span class="font-medium text-price">₹{{ number_format($order->total, 0) }}</span>
   </div>
   <p class="mt-4 text-[12px] text-muted">
-    Payment method: {{ $order->payment_method === 'razorpay' ? 'Online Payment (Razorpay)' : 'Cash on Delivery' }}
+    Payment method: {{ match ($order->payment_method) { 'razorpay' => 'Online Payment (Razorpay)', 'fastrr' => 'Shiprocket Checkout', default => 'Cash on Delivery' } }}
     @if($order->payment_method === 'razorpay' && $order->payment_reference)
       &middot; Ref: {{ $order->payment_reference }}
     @endif

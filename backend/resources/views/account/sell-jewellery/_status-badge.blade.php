@@ -1,9 +1,9 @@
 @php
   $statusClasses = [
-      'pending' => 'bg-gray-100 text-gray-700',
-      'submitted' => 'bg-gray-100 text-gray-700',
-      'vendors_notified' => 'bg-gray-100 text-gray-700',
-      'bidding_active' => 'bg-blue-100 text-blue-700',
+      'pending' => 'bg-amber-100 text-amber-700',
+      'submitted' => 'bg-amber-100 text-amber-700',
+      'vendors_notified' => 'bg-green-100 text-green-700',
+      'bidding_active' => 'bg-green-100 text-green-700',
       'bidding_closed' => 'bg-amber-100 text-amber-700',
       'bid_selected' => 'bg-amber-100 text-amber-700',
       'wallet_pending' => 'bg-amber-100 text-amber-700',
@@ -13,10 +13,10 @@
       'cancelled' => 'bg-red-100 text-red-800',
   ];
   $statusLabels = [
-      'pending' => 'Pending',
-      'submitted' => 'Submitted',
-      'vendors_notified' => 'Vendors Notified',
-      'bidding_active' => 'Bidding Active',
+      'pending' => 'Waiting for Approval',
+      'submitted' => 'Waiting for Approval',
+      'vendors_notified' => 'Approved',
+      'bidding_active' => 'Approved',
       'bidding_closed' => 'Bidding Closed',
       'bid_selected' => 'Bid Selected',
       'wallet_pending' => 'Wallet Pending',

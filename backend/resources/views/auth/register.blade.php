@@ -18,12 +18,6 @@
                 Join Estele for exclusive member offers &amp; faster checkout.
             </p>
 
-            @if(session('success'))
-                <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-[13px] text-green-700">
-                    {{ session('success') }}
-                </div>
-            @endif
-
             @if($errors->any())
                 <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
                     Please correct the highlighted fields below.
@@ -32,7 +26,7 @@
 
             {{-- Phone is already OTP-verified by the /login flow before landing
                  here — no second OTP step, just finish the profile. --}}
-            <form action="{{ route('register.attempt') }}" method="POST" class="space-y-4">
+            <form action="{{ route('register.attempt') }}" method="POST" class="space-y-4" data-loading-submit>
                 @csrf
 
                 <div>

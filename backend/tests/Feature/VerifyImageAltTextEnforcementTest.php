@@ -7,7 +7,6 @@ use App\Filament\Resources\Categories\Pages\CreateCategory;
 use App\Models\User;
 use Database\Seeders\ShieldSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -40,7 +39,7 @@ class VerifyImageAltTextEnforcementTest extends TestCase
                 'title' => 'Test banner',
                 'sort_order' => 0,
                 'is_active' => true,
-                'image' => [UploadedFile::fake()->image('banner.jpg')],
+                'image' => [$this->fakePng('banner.png')],
                 'image_alt_text' => '',
             ])
             ->call('create')
@@ -73,7 +72,7 @@ class VerifyImageAltTextEnforcementTest extends TestCase
                 'name' => 'With Image Category',
                 'slug' => 'with-image-category',
                 'sort_order' => 0,
-                'image' => [UploadedFile::fake()->image('category.jpg')],
+                'image' => [$this->fakePng('category.png')],
                 'image_alt_text' => '',
             ])
             ->call('create')
@@ -89,7 +88,7 @@ class VerifyImageAltTextEnforcementTest extends TestCase
                 'name' => 'Complete Category',
                 'slug' => 'complete-category',
                 'sort_order' => 0,
-                'image' => [UploadedFile::fake()->image('category.jpg')],
+                'image' => [$this->fakePng('category.png')],
                 'image_alt_text' => 'A necklace displayed on a marble surface',
             ])
             ->call('create')

@@ -84,4 +84,38 @@ class VendorInvitationServiceTest extends TestCase
             $results->first()['invitation']->expires_at->timestamp,
         );
     }
+
+    public function test_with_no_active_vendors_the_request_is_cancelled_instead_of_left_stranded(): void
+    {
+        $request = $this->makeRequest();
+        Vendor::create(['name' => 'Inactive Co', 'mobile' => '9000000015', 'is_active' => false]);
+
+        $results = app(VendorInvitationService::class)->inviteAll($request);
+
+        $this->assertTrue($results->isEmpty());
+        $fresh = $request->fresh();
+        $this->assertSame('cancelled', $fresh->status);
+        $this->assertDatabaseHas('old_jewellery_activity_logs', [
+            'old_jewellery_request_id' => $fresh->id,
+            'action' => 'no_active_vendors',
+            'to_status' => 'cancelled',
+        ]);
+    }
+
+    public function test_admin_is_notified_even_when_there_are_no_active_vendors(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create(['email' => 'admin@example.com']);
+        $admin->assignRole('super_admin');
+
+        $request = $this->makeRequest();
+
+        app(VendorInvitationService::class)->inviteAll($request);
+
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            $admin,
+            \App\Notifications\AdminNewOldJewelleryRequest::class,
+        );
+    }
 }

@@ -57,7 +57,14 @@ class OldJewellerySellController extends Controller
     {
         Gate::authorize('view', $oldJewelleryRequest);
 
-        return view('account.sell-jewellery.show', ['oldJewelleryRequest' => $oldJewelleryRequest]);
+        $cancelReason = $oldJewelleryRequest->status === 'cancelled'
+            ? $oldJewelleryRequest->activityLogs()->latest('id')->value('action')
+            : null;
+
+        return view('account.sell-jewellery.show', [
+            'oldJewelleryRequest' => $oldJewelleryRequest,
+            'cancelReason' => $cancelReason,
+        ]);
     }
 
     public function status(OldJewelleryRequest $oldJewelleryRequest): \Illuminate\Http\JsonResponse

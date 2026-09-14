@@ -30,14 +30,15 @@ class TwilioOtpGateway implements OtpGateway
             && filled(config('services.twilio.from'));
     }
 
-    public function send(string $phone, string $code): void
+    public function send(string $phone, string $code): bool
     {
         $cleanPhone = substr(preg_replace('/\D/', '', $phone), -10);
         $to = '+91'.$cleanPhone;
         $sid = config('services.twilio.sid');
 
         try {
-            $response = Http::asForm()
+            $response = Http::timeout(10)
+                ->asForm()
                 ->withBasicAuth($sid, config('services.twilio.token'))
                 ->post("https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json", [
                     'To' => $to,
@@ -50,7 +51,7 @@ class TwilioOtpGateway implements OtpGateway
                 'phone_suffix' => substr($cleanPhone, -4),
             ]);
 
-            return;
+            return false;
         }
 
         if (! $response->successful()) {
@@ -60,5 +61,7 @@ class TwilioOtpGateway implements OtpGateway
                 'phone_suffix' => substr($cleanPhone, -4),
             ]);
         }
+
+        return $response->successful();
     }
 }
