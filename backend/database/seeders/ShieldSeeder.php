@@ -76,13 +76,20 @@ class ShieldSeeder extends Seeder
         ]);
 
         // Reviews and approves/denies customer reward-submission videos —
-        // no other resource access. Update (not Create/Delete): the
-        // approve/reject actions on RewardSubmissionsTable both operate via
-        // an update, and the resource's own canCreate() is already false —
-        // there is nothing for a vendor to create or delete here.
+        // Update (not Create/Delete): the approve/reject actions on
+        // RewardSubmissionsTable both operate via an update, and the
+        // resource's own canCreate() is already false — there is nothing for
+        // a vendor to create or delete here.
+        //
+        // Also read-only access to the old-jewellery requests it was invited
+        // to bid on (migration 2026_09_12_120100_give_vendor_role_...) —
+        // kept in sync here because syncPermissions() below replaces the
+        // role's entire permission set, so re-running this seeder would
+        // otherwise silently revoke what that migration granted.
         $vendor = Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
         $vendor->syncPermissions([
             'ViewAny:RewardSubmission', 'View:RewardSubmission', 'Update:RewardSubmission',
+            'ViewAny:OldJewelleryRequest', 'View:OldJewelleryRequest',
         ]);
     }
 }

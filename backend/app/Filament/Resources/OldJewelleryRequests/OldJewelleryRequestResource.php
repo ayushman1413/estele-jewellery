@@ -123,8 +123,13 @@ class OldJewelleryRequestResource extends Resource
      * The bidding vendor tied to the signed-in user, or null when the user is
      * ordinary staff. Only active 'vendor' contacts are scoped — an 'admin'
      * contact is a normal panel login that happens to live in the same table.
+     *
+     * Public so the infolist/table can hide customer PII, other vendors'
+     * bids, and the admin bid from a vendor contact's own view of a request
+     * it was invited to — row-scoping alone only decides *which* requests a
+     * vendor login can open, not what fields render once it does.
      */
-    private static function currentVendorId(): ?int
+    public static function currentVendorId(): ?int
     {
         $userId = auth()->id();
 
