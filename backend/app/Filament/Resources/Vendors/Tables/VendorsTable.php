@@ -16,7 +16,6 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\PaginationMode;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -34,11 +33,11 @@ class VendorsTable
             ]))
             ->columns([
                 TextColumn::make('name')->searchable()->description(fn (Vendor $record) => $record->company_name),
-                TextColumn::make('access_role')
-                    ->label('Role')
-                    ->badge()
-                    ->formatStateUsing(fn (?string $state) => $state === Vendor::ACCESS_ROLE_ADMIN ? 'Admin' : 'Vendor')
-                    ->color(fn (?string $state) => $state === Vendor::ACCESS_ROLE_ADMIN ? 'warning' : 'success'),
+                TextColumn::make('mobile')
+                    ->searchable()
+                    ->icon(fn (Vendor $record) => $record->mobile_verified_at ? Heroicon::OutlinedCheckBadge : null)
+                    ->iconColor('success')
+                    ->tooltip(fn (Vendor $record) => $record->mobile_verified_at ? 'Mobile verified' : 'Mobile not verified'),
                 TextColumn::make('login_state')
                     ->label('Login')
                     ->badge()
@@ -53,22 +52,17 @@ class VendorsTable
                         'Invited' => 'info',
                         default => 'gray',
                     }),
-                TextColumn::make('mobile')->searchable(),
-                TextColumn::make('whatsapp_number')->label('WhatsApp')->searchable()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('email')->searchable()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('bids')
+                    ->label('Bids')
+                    ->state(fn (Vendor $record) => "{$record->accepted_count} / {$record->invitations_count}")
+                    ->tooltip('Accepted / invited')
+                    ->alignCenter(),
                 IconColumn::make('is_active')->label('Active')->boolean(),
-                IconColumn::make('mobile_verified_at')->label('Verified')->boolean()->state(fn (Vendor $record) => (bool) $record->mobile_verified_at),
-                TextColumn::make('invitations_count')->label('Invited')->alignCenter(),
-                TextColumn::make('accepted_count')->label('Accepted')->alignCenter(),
+                TextColumn::make('email')->searchable()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('whatsapp_number')->label('WhatsApp')->searchable()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')->dateTime('d M Y, h:i A')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('access_role')
-                    ->label('Role')
-                    ->options([
-                        Vendor::ACCESS_ROLE_VENDOR => 'Vendor',
-                        Vendor::ACCESS_ROLE_ADMIN => 'Admin',
-                    ]),
                 TernaryFilter::make('is_active'),
                 TernaryFilter::make('verified')
                     ->label('Mobile verified')
@@ -78,12 +72,11 @@ class VendorsTable
                     ),
             ])
             ->recordActions([
-                ViewAction::make(),
                 EditAction::make(),
                 ActionGroup::make([
-                    self::resendSetupLinkAction(),
-                    self::sendOtpAction(),
+                    ViewAction::make()->label('Performance'),
                     self::verifyOtpAction(),
+                    self::resendSetupLinkAction(),
                     DeleteAction::make(),
                 ]),
             ]);
@@ -107,8 +100,14 @@ class VendorsTable
                 .(filled($record->whatsapp_number) ? " and WhatsApp {$record->whatsapp_number}" : '')
                 .'. Any previous link stops working.')
             ->action(function (Vendor $record) {
-                if (app(PanelAccessService::class)->grant($record, isResend: true)) {
-                    Notification::make()->title("Setup link sent to {$record->email}")->success()->send();
+                try {
+                    if (app(PanelAccessService::class)->grant($record, isResend: true)) {
+                        Notification::make()->title("Setup link sent to {$record->email}")->success()->send();
+
+                        return;
+                    }
+                } catch (\RuntimeException $e) {
+                    Notification::make()->title($e->getMessage())->danger()->send();
 
                     return;
                 }
@@ -117,34 +116,26 @@ class VendorsTable
             });
     }
 
-    public static function sendOtpAction(): Action
-    {
-        return Action::make('send_otp')
-            ->label('Send OTP')
-            ->icon(Heroicon::OutlinedDevicePhoneMobile)
-            ->color('info')
-            ->visible(fn (Vendor $record) => ! $record->mobile_verified_at)
-            ->requiresConfirmation()
-            ->modalHeading('Send verification OTP')
-            ->modalDescription(fn (Vendor $record) => "A 6-digit code will be sent to {$record->mobile}. Ask the vendor for the code, then use “Verify OTP”.")
-            ->action(function (Vendor $record) {
-                app(OtpManager::class)->issue($record->mobile);
-
-                Notification::make()->title("OTP sent to {$record->mobile}")->success()->send();
-            });
-    }
-
+    /**
+     * One modal for the whole mobile check: "Send code" texts the vendor a
+     * 6-digit OTP, they read it back, the admin types it in and confirms.
+     */
     public static function verifyOtpAction(): Action
     {
         return Action::make('verify_otp')
-            ->label('Verify OTP')
+            ->label('Verify mobile')
             ->icon(Heroicon::OutlinedShieldCheck)
             ->color('success')
             ->visible(fn (Vendor $record) => ! $record->mobile_verified_at)
-            ->modalHeading('Verify vendor mobile')
+            ->modalHeading(fn (Vendor $record) => "Verify {$record->mobile}")
+            ->modalDescription('Press "Send code", ask the vendor for the 6-digit code they receive, then enter it below.')
+            ->modalSubmitActionLabel('Confirm code')
+            ->extraModalFooterActions([
+                self::sendOtpAction(),
+            ])
             ->schema([
                 TextInput::make('code')
-                    ->label('6-digit OTP')
+                    ->label('6-digit code')
                     ->required()
                     ->numeric()
                     ->length(6)
@@ -152,7 +143,7 @@ class VendorsTable
             ])
             ->action(function (array $data, Vendor $record) {
                 if (! app(OtpManager::class)->verify($record->mobile, (string) $data['code'])) {
-                    Notification::make()->title('Invalid or expired OTP.')->danger()->send();
+                    Notification::make()->title('Invalid or expired code.')->danger()->send();
 
                     return;
                 }
@@ -160,6 +151,19 @@ class VendorsTable
                 $record->update(['mobile_verified_at' => now()]);
 
                 Notification::make()->title('Mobile number verified.')->success()->send();
+            });
+    }
+
+    public static function sendOtpAction(): Action
+    {
+        return Action::make('send_otp')
+            ->label('Send code')
+            ->icon(Heroicon::OutlinedDevicePhoneMobile)
+            ->color('gray')
+            ->action(function (Vendor $record) {
+                app(OtpManager::class)->issue($record->mobile);
+
+                Notification::make()->title("Code sent to {$record->mobile}")->success()->send();
             });
     }
 }

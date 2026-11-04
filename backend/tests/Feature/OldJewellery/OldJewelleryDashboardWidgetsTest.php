@@ -33,7 +33,7 @@ class OldJewelleryDashboardWidgetsTest extends TestCase
         $this->assertSame('1', $stats['Active Bidding']);
         $this->assertSame('1', $stats['Completed Requests']);
         $this->assertSame('2', $stats['Vendor Responses']);
-        $this->assertSame('₹1,100.00', $stats['Highest Bid']);
+        $this->assertSame('₹1,100.00', $stats['Highest Final Bid']);
         $this->assertSame('₹990.00', $stats['Wallet Credited']);
         $this->assertSame('₹0.00', $stats['Expired Wallet Credits']);
         $this->assertSame('100.0%', $stats['Conversion to Purchase']);

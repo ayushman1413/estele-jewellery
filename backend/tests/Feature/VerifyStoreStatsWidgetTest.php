@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
+use App\Models\Vendor;
 use Database\Seeders\ShieldSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -74,5 +75,33 @@ class VerifyStoreStatsWidgetTest extends TestCase
             'payment_status' => 'pending',
             'status' => 'placed',
         ], $overrides));
+    }
+
+    public function test_a_vendor_login_cannot_see_store_wide_revenue_and_order_stats(): void
+    {
+        $this->seed(ShieldSeeder::class);
+
+        $vendor = Vendor::create([
+            'name' => 'Some Vendor',
+            'mobile' => '9000000099',
+            'is_active' => true,
+            'access_role' => Vendor::ACCESS_ROLE_VENDOR,
+        ]);
+        $user = User::factory()->create();
+        $vendor->update(['user_id' => $user->id]);
+        $user->assignRole('vendor');
+        $this->actingAs($user);
+
+        $this->assertFalse(StoreStatsWidget::canView());
+    }
+
+    public function test_a_super_admin_can_see_store_wide_stats(): void
+    {
+        $this->seed(ShieldSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+        $this->actingAs($admin);
+
+        $this->assertTrue(StoreStatsWidget::canView());
     }
 }

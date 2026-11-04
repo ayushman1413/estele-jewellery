@@ -290,20 +290,22 @@
 
         <div class="pdp-buy-box mb-3 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row gap-3">
-            <div class="inline-flex h-12 w-32 shrink-0 items-center justify-between rounded-md border border-line-strong bg-white px-2 shadow-sm" data-qty>
-              <button class="grid h-8 w-8 place-items-center rounded text-[16px] font-semibold text-heading transition-colors hover:bg-warmbeige" type="button" data-qty-minus aria-label="Decrease quantity">&minus;</button>
-              <input class="w-10 border-0 text-center font-medium text-[14px] text-heading outline-none" type="number" name="quantity" value="1" min="1" aria-label="Quantity">
-              <button class="grid h-8 w-8 place-items-center rounded text-[16px] font-semibold text-heading transition-colors hover:bg-warmbeige" type="button" data-qty-plus aria-label="Increase quantity">+</button>
+            <div class="inline-flex h-12 w-36 shrink-0 items-center justify-between rounded-md border border-line-strong bg-white px-1 shadow-sm" data-qty>
+              <button class="grid h-11 w-10 place-items-center rounded text-[16px] font-semibold text-heading transition-colors hover:bg-warmbeige" type="button" data-qty-minus aria-label="Decrease quantity">&minus;</button>
+              <input class="w-10 border-0 text-center font-medium text-base text-heading outline-none" type="number" name="quantity" value="1" min="1" aria-label="Quantity">
+              <button class="grid h-11 w-10 place-items-center rounded text-[16px] font-semibold text-heading transition-colors hover:bg-warmbeige" type="button" data-qty-plus aria-label="Increase quantity">+</button>
             </div>
             <button class="flex-1 rounded-md bg-accent py-3.5 px-6 text-center text-[13px] font-semibold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:bg-accent-dark" type="submit"
                     {{ $product->stock_quantity <= 0 ? 'disabled' : '' }}>
               {{ $product->stock_quantity > 0 ? 'Add to Cart' : 'Out of Stock' }}
             </button>
           </div>
-          <button class="w-full rounded-md border-2 border-accent bg-transparent py-3 px-6 text-center text-[13px] font-semibold uppercase tracking-[0.6px] text-accent transition-colors hover:bg-accent hover:text-white" type="submit" name="buy_now" value="1"
+          <button class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-heading py-3.5 px-6 text-center text-[13px] font-semibold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:bg-black disabled:opacity-60" type="submit" name="express" value="1" formaction="{{ route('checkout.express.start', $product) }}" data-express-submit
                   {{ $product->stock_quantity <= 0 ? 'disabled' : '' }}>
-            Buy It Now
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
+            Checkout
           </button>
+          <p class="-mt-1 text-center text-[11px] text-muted">Fast &amp; secure · UPI, cards, net banking, COD</p>
         </div>
         <div class="pdp-buy-box-spacer" aria-hidden="true"></div>
       </form>

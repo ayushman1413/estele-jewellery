@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Vendors\Schemas;
 
+use App\Models\OldJewelleryRequest;
 use App\Models\Vendor;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -39,7 +40,7 @@ class VendorInfolist
                     ->state(fn (Vendor $record) => $record->bids()->count()),
                 TextEntry::make('bids_won')
                     ->label('Bids Won')
-                    ->state(fn (Vendor $record) => \App\Models\OldJewelleryRequest::whereIn(
+                    ->state(fn (Vendor $record) => OldJewelleryRequest::whereIn(
                         'winning_bid_id',
                         $record->bids()->pluck('id'),
                     )->count()),
@@ -50,7 +51,7 @@ class VendorInfolist
                         if ($submitted === 0) {
                             return '—';
                         }
-                        $won = \App\Models\OldJewelleryRequest::whereIn('winning_bid_id', $record->bids()->pluck('id'))->count();
+                        $won = OldJewelleryRequest::whereIn('winning_bid_id', $record->bids()->pluck('id'))->count();
 
                         return round(($won / $submitted) * 100).'%';
                     }),

@@ -68,8 +68,8 @@ class OldJewelleryRequestServiceTest extends TestCase
         $user = User::factory()->create();
         $service = app(OldJewelleryRequestService::class);
 
-        $video = UploadedFile::fake()->create('jewellery.mp4', 5000, 'video/mp4');
-        $image = UploadedFile::fake()->image('jewellery.jpg');
+        $video = $this->fakeVideo('jewellery.mp4', 5000);
+        $image = $this->fakePng('jewellery.png');
 
         $request = $service->create($user, ['description' => 'A ring'], $image, $video);
 

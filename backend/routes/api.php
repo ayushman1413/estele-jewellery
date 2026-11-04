@@ -1,12 +1,24 @@
 <?php
 
 use App\Http\Controllers\Api\AdminOldJewelleryController;
+use App\Http\Controllers\Api\FastrrCatalogController;
+use App\Http\Controllers\Api\FastrrWebhookController;
 use App\Http\Controllers\Api\OldJewelleryRequestController;
 use App\Http\Controllers\Api\VendorOldJewelleryController;
 use App\Http\Controllers\Api\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+
+    // Shiprocket Fastrr Checkout reads our catalogue here and posts each
+    // completed order back. Save these URLs under Dashboard → Custom
+    // Endpoints; every call must carry the HMAC or FASTRR_CATALOG_TOKEN.
+    Route::prefix('fastrr')->middleware(['fastrr', 'throttle:120,1'])->group(function () {
+        Route::get('/products', [FastrrCatalogController::class, 'products']);
+        Route::get('/collections', [FastrrCatalogController::class, 'collections']);
+        Route::get('/collections/{collection}/products', [FastrrCatalogController::class, 'collectionProducts']);
+        Route::post('/webhooks/order', [FastrrWebhookController::class, 'order']);
+    });
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/old-jewellery/requests', [OldJewelleryRequestController::class, 'store'])

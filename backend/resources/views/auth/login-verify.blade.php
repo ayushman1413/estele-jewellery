@@ -25,9 +25,9 @@
         </button>
       </form>
 
-      <form class="mt-4" action="{{ route('login.resend') }}" method="post">
+      <form class="mt-4" action="{{ route('login.resend') }}" method="post" data-loading-submit>
         @csrf
-        <button class="w-full text-center text-[13px] font-medium text-accent hover:underline" type="submit">Didn't receive code? Resend</button>
+        <button class="inline-flex min-h-11 w-full items-center justify-center text-center text-[13px] font-medium text-accent hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline" type="submit" data-resend-cooldown="30">Didn't receive code? Resend</button>
       </form>
 
       <p class="mt-6 text-center text-[13px] text-muted">

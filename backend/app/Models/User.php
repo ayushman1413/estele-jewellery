@@ -9,8 +9,11 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -19,7 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     public function canAccessPanel(Panel $panel): bool
     {
@@ -28,38 +31,51 @@ class User extends Authenticatable implements FilamentUser
         return filled($this->password) && $this->roles()->exists();
     }
 
+    protected static function booted(): void
+    {
+        // The FK cascade would drop these rows without firing their model
+        // events, leaving every photo and video they own on disk. Deleting
+        // through Eloquent lets the media library remove the files too.
+        static::deleting(function (User $user) {
+            $user->oldJewelleryRequests()->get()->each->delete();
+            $user->rewardSubmissions()->get()->each->delete();
+            $user->tokens()->delete();
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        });
+    }
+
     /** The bidding vendor this login belongs to, if any. */
-    public function vendor(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function vendor(): HasOne
     {
         return $this->hasOne(Vendor::class);
     }
 
-    public function orders(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function orders(): HasMany
     {
         return $this->hasMany(Order::class)->latest();
     }
 
-    public function addresses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function addresses(): HasMany
     {
         return $this->hasMany(Address::class)->latest();
     }
 
-    public function walletTransactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function walletTransactions(): HasMany
     {
         return $this->hasMany(WalletTransaction::class)->latest();
     }
 
-    public function rewardSubmissions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function rewardSubmissions(): HasMany
     {
         return $this->hasMany(RewardSubmission::class)->latest();
     }
 
-    public function oldJewelleryRequests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function oldJewelleryRequests(): HasMany
     {
         return $this->hasMany(OldJewelleryRequest::class);
     }
 
-    public function oldJewelleryWalletCredits(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function oldJewelleryWalletCredits(): HasMany
     {
         return $this->hasMany(OldJewelleryWalletCredit::class);
     }

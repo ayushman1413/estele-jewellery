@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\OldJewellery;
 
+use App\Models\OldJewelleryBid;
 use App\Models\OldJewelleryRequest;
 use App\Models\OldJewelleryWalletCredit;
 use App\Models\User;
@@ -46,6 +47,33 @@ class NotificationDispatchTest extends TestCase
         Notification::assertSentTo($vendor, VendorInvitedToBid::class);
     }
 
+    public function test_the_vendor_invite_link_points_at_the_bid_page_not_the_json_api(): void
+    {
+        Notification::fake();
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
+        $request = OldJewelleryRequest::create([
+            'user_id' => User::factory()->create()->id,
+            'request_number' => 'OJ-2026-000121',
+            'status' => 'submitted',
+            'bidding_start_at' => now(),
+            'bidding_end_at' => now()->addHours(3),
+        ]);
+        $vendor = Vendor::create(['name' => 'V', 'mobile' => '9000000121', 'email' => 'v@example.com', 'is_active' => true]);
+
+        app(VendorInvitationService::class)->inviteAll($request);
+
+        Notification::assertSentTo($vendor, VendorInvitedToBid::class, function (VendorInvitedToBid $notification) {
+            $mail = $notification->toMail($notification->invitation->vendor);
+            $actionUrl = $mail->actionUrl;
+
+            $this->assertStringContainsString('/old-jewellery/vendor/', $actionUrl);
+            $this->assertStringNotContainsString('/api/', $actionUrl);
+
+            return true;
+        });
+    }
+
     public function test_vendor_with_whatsapp_number_receives_whatsapp_channel(): void
     {
         Notification::fake();
@@ -75,7 +103,7 @@ class NotificationDispatchTest extends TestCase
         );
     }
 
-    public function test_vendor_without_whatsapp_number_gets_mail_only(): void
+    public function test_vendor_without_whatsapp_number_falls_back_to_mobile_for_whatsapp(): void
     {
         Notification::fake();
 
@@ -98,7 +126,7 @@ class NotificationDispatchTest extends TestCase
             $vendor,
             VendorInvitedToBid::class,
             function ($notification, $channels) {
-                return $channels === ['mail'];
+                return in_array(WhatsAppChannel::class, $channels, true) && in_array('mail', $channels, true);
             },
         );
     }
@@ -145,7 +173,7 @@ class NotificationDispatchTest extends TestCase
             'bidding_start_at' => now()->subHours(3),
             'bidding_end_at' => now(),
         ]);
-        $bid = \App\Models\OldJewelleryBid::create([
+        $bid = OldJewelleryBid::create([
             'old_jewellery_request_id' => $request->id,
             'bidder_type' => 'vendor',
             'amount' => 1000,
@@ -170,7 +198,7 @@ class NotificationDispatchTest extends TestCase
             'bidding_start_at' => now()->subHours(3),
             'bidding_end_at' => now(),
         ]);
-        $bid = \App\Models\OldJewelleryBid::create([
+        $bid = OldJewelleryBid::create([
             'old_jewellery_request_id' => $request->id,
             'bidder_type' => 'vendor',
             'amount' => 1000,

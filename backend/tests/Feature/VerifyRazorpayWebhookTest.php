@@ -34,6 +34,31 @@ class VerifyRazorpayWebhookTest extends TestCase
         $this->assertSame('pay_fake456', $order->payment_reference);
     }
 
+    public function test_an_unconfigured_webhook_secret_refuses_every_signature_including_one_computed_against_an_empty_key(): void
+    {
+        config(['services.razorpay.webhook_secret' => null]);
+        $order = $this->makePendingOrder('order_fake123');
+
+        $payload = [
+            'event' => 'payment.captured',
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_fake456', 'order_id' => 'order_fake123']]],
+        ];
+        $body = json_encode($payload);
+
+        // An attacker who notices the secret is blank can compute this
+        // exact signature themselves — verifyWebhookSignature() must refuse
+        // it outright rather than accepting a "valid" HMAC over an empty key.
+        $forgedSignature = hash_hmac('sha256', $body, '');
+
+        $response = $this->call('POST', route('webhooks.razorpay'), [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X-Razorpay-Signature' => $forgedSignature,
+        ], $body);
+
+        $response->assertStatus(400);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+    }
+
     public function test_invalid_signature_is_rejected_and_order_untouched(): void
     {
         config(['services.razorpay.webhook_secret' => 'whsec_fake']);

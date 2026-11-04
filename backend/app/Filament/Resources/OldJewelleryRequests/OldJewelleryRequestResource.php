@@ -6,6 +6,7 @@ use App\Filament\Resources\OldJewelleryRequests\Pages\ListOldJewelleryRequests;
 use App\Filament\Resources\OldJewelleryRequests\Pages\ViewOldJewelleryRequest;
 use App\Filament\Resources\OldJewelleryRequests\Schemas\OldJewelleryRequestInfolist;
 use App\Filament\Resources\OldJewelleryRequests\Tables\OldJewelleryRequestsTable;
+use App\Filament\Support\NavigationSeen;
 use App\Models\OldJewelleryRequest;
 use App\Models\Vendor;
 use BackedEnum;
@@ -22,9 +23,28 @@ class OldJewelleryRequestResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Old Jewellery';
+    protected static ?string $navigationLabel = 'Old Jewellery';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Sell Jewellery';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'request_number';
+
+    public static function getNavigationBadge(): ?string
+    {
+        return NavigationSeen::badge('old-jewellery-requests', OldJewelleryRequest::query()->whereIn('status', ['pending', 'submitted']));
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'New requests waiting for approval';
+    }
 
     public static function table(Table $table): Table
     {
@@ -105,8 +125,13 @@ class OldJewelleryRequestResource extends Resource
      * The bidding vendor tied to the signed-in user, or null when the user is
      * ordinary staff. Only active 'vendor' contacts are scoped — an 'admin'
      * contact is a normal panel login that happens to live in the same table.
+     *
+     * Public so the infolist/table can hide customer PII, other vendors'
+     * bids, and the admin bid from a vendor contact's own view of a request
+     * it was invited to — row-scoping alone only decides *which* requests a
+     * vendor login can open, not what fields render once it does.
      */
-    private static function currentVendorId(): ?int
+    public static function currentVendorId(): ?int
     {
         $userId = auth()->id();
 

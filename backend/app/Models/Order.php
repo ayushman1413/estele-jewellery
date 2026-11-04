@@ -2,8 +2,13 @@
 
 namespace App\Models;
 
+use App\Mail\OrderPacked;
+use App\Services\WalletService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class Order extends Model
@@ -105,7 +110,7 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
@@ -115,13 +120,18 @@ class Order extends Model
         return $this->hasMany(CouponUsage::class);
     }
 
-    public function rewardSubmission(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function rewardSubmission(): HasOne
     {
         return $this->hasOne(RewardSubmission::class);
     }
 
     protected static function booted(): void
     {
+        // Same reason as User::booted(): the submission's video must go with it.
+        static::deleting(function (Order $order) {
+            $order->rewardSubmission?->delete();
+        });
+
         static::updating(function (Order $order) {
             if (! $order->isDirty('status')) {
                 return;
@@ -157,7 +167,7 @@ class Order extends Model
         // transition guard above rejects the move.
         static::updated(function (Order $order) {
             if ($order->wasChanged('status') && $order->status === 'accepted' && filled($order->customer_email)) {
-                \Illuminate\Support\Facades\Mail::to($order->customer_email)->queue(new \App\Mail\OrderPacked($order));
+                Mail::to($order->customer_email)->queue(new OrderPacked($order));
             }
         });
 
@@ -178,7 +188,7 @@ class Order extends Model
                 && (float) $order->wallet_amount_used > 0
                 && $order->user_id
             ) {
-                app(\App\Services\WalletService::class)->credit(
+                app(WalletService::class)->credit(
                     $order->user,
                     (float) $order->wallet_amount_used,
                     'order_refund',

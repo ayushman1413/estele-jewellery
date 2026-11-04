@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\OldJewelleryRequests\Schemas;
 
+use App\Filament\Resources\OldJewelleryRequests\OldJewelleryRequestResource;
 use App\Models\OldJewelleryActivityLog;
 use App\Models\OldJewelleryBid;
 use App\Models\OldJewelleryRequest;
@@ -24,8 +25,10 @@ class OldJewelleryRequestInfolist
                 ->schema([
                     TextEntry::make('request_number')->label('Request ID')->copyable(),
                     TextEntry::make('user.name')->label('Name'),
-                    TextEntry::make('user.phone')->label('Phone')->placeholder('—'),
-                    TextEntry::make('user.email')->label('Email')->placeholder('—'),
+                    TextEntry::make('user.phone')->label('Phone')->placeholder('—')
+                        ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null),
+                    TextEntry::make('user.email')->label('Email')->placeholder('—')
+                        ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null),
                     TextEntry::make('created_at')->label('Submitted at')->dateTime('d M Y, h:i A'),
                     TextEntry::make('status')->badge(),
                 ]),
@@ -60,18 +63,22 @@ class OldJewelleryRequestInfolist
                         ->state(fn (OldJewelleryRequest $record) => $record->invitations->where('response_status', 'pending')->count()),
 
                     TextEntry::make('highest_bid')->label('Highest bid')->weight('bold')
-                        ->state(fn (OldJewelleryRequest $record) => self::money($record->bids->where('is_valid', true)->max('amount'))),
+                        ->state(fn (OldJewelleryRequest $record) => self::money($record->bids->where('is_valid', true)->max('amount')))
+                        ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null),
                     TextEntry::make('admin_bid')->label('Admin bid')
-                        ->state(fn (OldJewelleryRequest $record) => self::money($record->bids->where('bidder_type', 'admin')->max('amount'))),
+                        ->state(fn (OldJewelleryRequest $record) => self::money($record->bids->where('bidder_type', 'admin')->max('amount')))
+                        ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null),
                     TextEntry::make('final_amount')->label('Final selected bid')->weight('bold')->color('success')
                         ->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
                     TextEntry::make('winner')->label('Winning bidder')
                         ->state(fn (OldJewelleryRequest $record) => self::bidderName($record->winningBid))
-                        ->placeholder('—'),
+                        ->placeholder('—')
+                        ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null),
                 ]),
 
             Section::make('Wallet')
                 ->columns(4)
+                ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null)
                 ->schema([
                     TextEntry::make('walletCredit.gross_amount')->label('Highest bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
                     TextEntry::make('walletCredit.deduction_amount')->label('10% deduction')->color('danger')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
@@ -92,6 +99,7 @@ class OldJewelleryRequestInfolist
 
             Section::make('Vendor Responses')
                 ->collapsible()
+                ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null)
                 ->schema([
                     RepeatableEntry::make('invitations')
                         ->hiddenLabel()
@@ -123,6 +131,7 @@ class OldJewelleryRequestInfolist
 
             Section::make('Bid Comparison')
                 ->collapsible()
+                ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null)
                 ->schema([
                     RepeatableEntry::make('bids')
                         ->hiddenLabel()
@@ -157,6 +166,7 @@ class OldJewelleryRequestInfolist
 
             Section::make('Activity Log')
                 ->collapsible()
+                ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null)
                 ->schema([
                     RepeatableEntry::make('activityLogs')
                         ->hiddenLabel()
@@ -210,6 +220,7 @@ class OldJewelleryRequestInfolist
             'admin_bid_submitted' => 'Admin submitted valuation',
             'bidding_closed' => 'Bidding closed',
             'no_valid_bids' => 'No valid bids — cancelled',
+            'no_active_vendors' => 'No active vendors — cancelled',
             'bid_selected' => 'Highest bid selected',
             'wallet_credited' => 'Wallet credited',
             'wallet_expired' => 'Wallet credit expired',

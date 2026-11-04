@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\OldJewelleryRequests\Tables;
 
+use App\Filament\Resources\OldJewelleryRequests\OldJewelleryRequestResource;
 use App\Models\OldJewelleryRequest;
 use App\Services\OldJewellery\OldJewelleryBiddingService;
 use App\Services\OldJewellery\OldJewelleryClosingService;
@@ -34,7 +35,8 @@ class OldJewelleryRequestsTable
                 ->withMax(['bids as admin_bid' => fn (Builder $q) => $q->where('bidder_type', 'admin')], 'amount'))
             ->columns([
                 TextColumn::make('request_number')->label('Request ID')->searchable()->weight('bold'),
-                TextColumn::make('user.name')->label('Customer')->searchable()->description(fn (OldJewelleryRequest $record) => $record->user?->phone),
+                TextColumn::make('user.name')->label('Customer')->searchable()
+                    ->description(fn (OldJewelleryRequest $record) => OldJewelleryRequestResource::currentVendorId() === null ? $record->user?->phone : null),
                 TextColumn::make('created_at')->label('Submitted')->dateTime('d M Y, h:i A')->sortable(),
                 TextColumn::make('status')->badge()
                     ->color(fn (string $state) => match ($state) {
@@ -47,8 +49,10 @@ class OldJewelleryRequestsTable
                 TextColumn::make('bidding_end_at')->label('Bid end')->dateTime('d M Y, h:i A')->sortable(),
                 TextColumn::make('invitations_count')->label('Invited')->alignCenter(),
                 TextColumn::make('responses_count')->label('Responses')->alignCenter(),
-                TextColumn::make('highest_bid')->label('Highest bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
-                TextColumn::make('admin_bid')->label('Admin bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—')->toggleable(),
+                TextColumn::make('highest_bid')->label('Highest bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—')
+                    ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null),
+                TextColumn::make('admin_bid')->label('Admin bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—')->toggleable()
+                    ->visible(fn () => OldJewelleryRequestResource::currentVendorId() === null),
                 TextColumn::make('final_amount')->label('Final bid')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
                 TextColumn::make('credited_amount')->label('Wallet amount')->formatStateUsing(fn ($state) => self::money($state))->placeholder('—'),
                 TextColumn::make('walletCredit.status')->label('Wallet status')->badge()
@@ -98,6 +102,7 @@ class OldJewelleryRequestsTable
             ->label('Submit Valuation')
             ->icon(Heroicon::OutlinedCurrencyRupee)
             ->color('warning')
+            ->authorize(fn (OldJewelleryRequest $record) => auth()->user()?->can('bidAsAdmin', $record::class))
             ->visible(fn (OldJewelleryRequest $record) => in_array($record->status, ['vendors_notified', 'bidding_active'], true) && now()->lessThan($record->bidding_end_at))
             ->schema([
                 TextInput::make('amount')->label('Valuation amount (₹)')->numeric()->required()->minValue(0.01)->maxValue(OldJewelleryBiddingService::MAX_BID_AMOUNT),
@@ -123,6 +128,7 @@ class OldJewelleryRequestsTable
             ->color('danger')
             ->requiresConfirmation()
             ->modalDescription('Bidding will be locked immediately, the highest valid bid selected, and 90% credited to the customer wallet. This cannot be undone.')
+            ->authorize(fn (OldJewelleryRequest $record) => auth()->user()?->can('closeAsAdmin', $record::class))
             ->visible(fn (OldJewelleryRequest $record) => $record->status === 'bidding_active')
             ->action(function (OldJewelleryRequest $record) {
                 $result = app(OldJewelleryClosingService::class)->close($record, force: true);

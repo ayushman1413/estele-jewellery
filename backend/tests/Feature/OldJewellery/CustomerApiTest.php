@@ -24,7 +24,7 @@ class CustomerApiTest extends TestCase
 
         $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/old-jewellery/requests', [
             'description' => 'A bangle',
-            'video' => UploadedFile::fake()->create('video.mp4', 5000, 'video/mp4'),
+            'video' => $this->fakeVideo('video.mp4', 5000),
         ]);
 
         $response->assertStatus(201)

@@ -262,9 +262,7 @@ Expected: PASS (5 tests)
 
 ```bash
 git add database/migrations/2026_09_12_100000_create_admin_invitations_table.php app/Models/AdminInvitation.php tests/Unit/AdminInvitationTest.php
-git commit -m "feat: add admin_invitations table and AdminInvitation model
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+git commit -m "feat: add admin_invitations table and AdminInvitation model"
 ```
 
 ---
@@ -398,9 +396,7 @@ Expected: PASS
 
 ```bash
 git add app/Notifications/AdminInvited.php tests/Unit/AdminInvitedNotificationTest.php
-git commit -m "feat: add AdminInvited notification
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+git commit -m "feat: add AdminInvited notification"
 ```
 
 ---
@@ -712,9 +708,7 @@ Expected: PASS (both tests — `test_mail_contains_accept_link_and_role` now res
 
 ```bash
 git add app/Http/Controllers/AdminInvitationController.php resources/views/admin-invitations routes/web.php tests/Feature/AdminInvitationAcceptTest.php
-git commit -m "feat: add public admin invite accept routes and controller
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+git commit -m "feat: add public admin invite accept routes and controller"
 ```
 
 ---
@@ -962,9 +956,7 @@ Expected: PASS (2 tests)
 
 ```bash
 git add app/Filament/Resources/Admins app/Policies/AdminInvitationPolicy.php database/seeders/ShieldSeeder.php tests/Feature/AdminResourceListTest.php
-git commit -m "feat: add Admins Filament resource with pending/active list
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+git commit -m "feat: add Admins Filament resource with pending/active list"
 ```
 
 ---
@@ -1230,9 +1222,7 @@ Expected: all tests pass, including Tasks 1-4's tests.
 
 ```bash
 git add app/Filament/Resources/Admins tests/Feature/AdminInvitationCreateTest.php
-git commit -m "feat: add admin invite create form with inline role creation
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+git commit -m "feat: add admin invite create form with inline role creation"
 ```
 
 ---
@@ -1399,9 +1389,7 @@ Expected: all pass.
 
 ```bash
 git add app/Filament/Resources/Admins/Tables/AdminsTable.php tests/Feature/AdminInvitationRowActionsTest.php
-git commit -m "feat: add resend and revoke actions to admin invitations table
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+git commit -m "feat: add resend and revoke actions to admin invitations table"
 ```
 
 ---

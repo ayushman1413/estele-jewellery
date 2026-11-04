@@ -7,7 +7,6 @@ use App\Filament\Resources\Products\Pages\CreateProduct;
 use App\Models\User;
 use Database\Seeders\ShieldSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -41,7 +40,7 @@ class VerifyMediaUploadLimitsTest extends TestCase
                 'price' => 999,
                 'stock_quantity' => 5,
                 'is_active' => true,
-                'gallery' => [UploadedFile::fake()->image('big.jpg')->size(600)],
+                'gallery' => [$this->fakePng('big.png', 600)],
             ])
             ->call('create')
             ->assertHasFormErrors(['gallery']);
@@ -59,7 +58,7 @@ class VerifyMediaUploadLimitsTest extends TestCase
                 'price' => 999,
                 'stock_quantity' => 5,
                 'is_active' => true,
-                'gallery' => [UploadedFile::fake()->image('ok.jpg')->size(400)],
+                'gallery' => [$this->fakePng('ok.png', 400)],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -79,7 +78,7 @@ class VerifyMediaUploadLimitsTest extends TestCase
                 'price' => 999,
                 'stock_quantity' => 5,
                 'is_active' => true,
-                'video' => [UploadedFile::fake()->create('clip.mp4', 3000, 'video/mp4')],
+                'video' => [$this->fakeVideo('clip.mp4', 3000)],
             ])
             ->call('create')
             ->assertHasFormErrors(['video']);
@@ -97,7 +96,7 @@ class VerifyMediaUploadLimitsTest extends TestCase
                 'price' => 999,
                 'stock_quantity' => 5,
                 'is_active' => true,
-                'video' => [UploadedFile::fake()->create('clip.mp4', 1500, 'video/mp4')],
+                'video' => [$this->fakeVideo('clip.mp4', 1500)],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -114,7 +113,7 @@ class VerifyMediaUploadLimitsTest extends TestCase
                 'title' => 'Oversized banner',
                 'sort_order' => 0,
                 'is_active' => true,
-                'image' => [UploadedFile::fake()->image('big-banner.jpg')->size(1200)],
+                'image' => [$this->fakePng('big-banner.png', 1200)],
                 'image_alt_text' => 'Oversized banner',
             ])
             ->call('create')
@@ -130,7 +129,7 @@ class VerifyMediaUploadLimitsTest extends TestCase
                 'title' => 'Fitting banner',
                 'sort_order' => 0,
                 'is_active' => true,
-                'image' => [UploadedFile::fake()->image('ok-banner.jpg')->size(800)],
+                'image' => [$this->fakePng('ok-banner.png', 800)],
                 'image_alt_text' => 'Fitting banner',
             ])
             ->call('create')

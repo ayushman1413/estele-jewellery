@@ -12,16 +12,16 @@
     <h1 class="text-[20px] uppercase tracking-[0.5px] md:text-[26px] mb-5">Checkout</h1>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-[1fr_340px] md:gap-[34px]">
-      <form action="{{ route('checkout.store') }}" method="post" class="[&_.field-set]:mb-7">
+      <form action="{{ route('checkout.store') }}" method="post" class="[&_.field-set]:mb-7" data-loading-submit>
         @csrf
 
         <fieldset class="field-set">
           <legend class="mb-3.5 text-[14px] font-medium uppercase tracking-[0.5px]">Contact</legend>
           <label class="mb-1.5 block text-[13px] font-medium text-heading" for="customer_email">Email</label>
-          <input class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="customer_email" name="customer_email" type="email" placeholder="you@example.com" value="{{ old('customer_email') }}" required>
+          <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="customer_email" name="customer_email" type="email" placeholder="you@example.com" value="{{ old('customer_email') }}" autocomplete="email" required>
           @error('customer_email') <p class="mb-3.5 -mt-2 text-[12px] text-salebadge">{{ $message }}</p> @enderror
           <label class="mb-1.5 block text-[13px] font-medium text-heading" for="customer_phone">Phone</label>
-          <input class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="customer_phone" name="customer_phone" type="tel" placeholder="+91" value="{{ old('customer_phone') }}" required>
+          <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="customer_phone" name="customer_phone" type="tel" placeholder="+91" value="{{ old('customer_phone') }}" inputmode="tel" autocomplete="tel" required>
           @error('customer_phone') <p class="mb-3.5 -mt-2 text-[12px] text-salebadge">{{ $message }}</p> @enderror
         </fieldset>
 
@@ -30,33 +30,33 @@
           <div class="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label class="mb-1.5 block text-[13px] font-medium text-heading" for="customer_first_name">First name</label>
-              <input class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading" id="customer_first_name" name="customer_first_name" type="text" value="{{ old('customer_first_name') }}" required>
+              <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading" id="customer_first_name" name="customer_first_name" type="text" value="{{ old('customer_first_name') }}" autocomplete="given-name" required>
               @error('customer_first_name') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
             </div>
             <div>
               <label class="mb-1.5 block text-[13px] font-medium text-heading" for="customer_last_name">Last name</label>
-              <input class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading" id="customer_last_name" name="customer_last_name" type="text" value="{{ old('customer_last_name') }}" required>
+              <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading" id="customer_last_name" name="customer_last_name" type="text" value="{{ old('customer_last_name') }}" autocomplete="family-name" required>
               @error('customer_last_name') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
             </div>
           </div>
           <label class="mb-1.5 block text-[13px] font-medium text-heading" for="shipping_address_line1">Address</label>
-          <input class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="shipping_address_line1" name="shipping_address_line1" type="text" value="{{ old('shipping_address_line1') }}" required>
+          <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="shipping_address_line1" name="shipping_address_line1" type="text" value="{{ old('shipping_address_line1') }}" autocomplete="address-line1" required>
           @error('shipping_address_line1') <p class="mb-3.5 -mt-2 text-[12px] text-salebadge">{{ $message }}</p> @enderror
           <div class="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label class="mb-1.5 block text-[13px] font-medium text-heading" for="shipping_city">City</label>
-              <input class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading" id="shipping_city" name="shipping_city" type="text" value="{{ old('shipping_city') }}" required>
+              <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading" id="shipping_city" name="shipping_city" type="text" value="{{ old('shipping_city') }}" autocomplete="address-level2" required>
               @error('shipping_city') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
             </div>
             <div>
               <label class="mb-1.5 block text-[13px] font-medium text-heading" for="shipping_postal_code">PIN code</label>
-              <input class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading" id="shipping_postal_code" name="shipping_postal_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" value="{{ old('shipping_postal_code') }}" required>
+              <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading" id="shipping_postal_code" name="shipping_postal_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" value="{{ old('shipping_postal_code') }}" autocomplete="postal-code" required>
               @error('shipping_postal_code') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
               <p id="shipping_postal_code_status" class="mt-1 text-[12px] text-muted"></p>
             </div>
           </div>
           <label class="mb-1.5 block text-[13px] font-medium text-heading" for="shipping_state">State</label>
-          <select class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading" id="shipping_state" name="shipping_state" required>
+          <select class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading" id="shipping_state" name="shipping_state" required>
             <option value="" disabled {{ old('shipping_state') ? '' : 'selected' }}>Select state</option>
             @foreach([
               'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
@@ -93,7 +93,7 @@
 
         <div class="field-set">
           <label class="mb-1.5 block text-[13px] font-medium text-heading" for="order_note">Order note (optional)</label>
-          <textarea class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading" id="order_note" name="order_note" rows="3">{{ old('order_note') }}</textarea>
+          <textarea class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading" id="order_note" name="order_note" rows="3">{{ old('order_note') }}</textarea>
         </div>
 
         @auth
@@ -150,9 +150,9 @@
               </form>
             </div>
           @else
-            <form action="{{ route('cart.coupon.apply') }}" method="post" class="flex gap-2">
+            <form action="{{ route('cart.coupon.apply') }}" method="post" class="flex gap-2" data-loading-submit>
               @csrf
-              <input class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading flex-1" id="checkout-coupon" name="code" type="text" placeholder="Enter code" required>
+              <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading flex-1" id="checkout-coupon" name="code" type="text" placeholder="Enter code" required>
               <button class="inline-flex items-center justify-center gap-2 border border-accent bg-accent px-5 py-3 text-[12px] font-medium uppercase tracking-[0.5px] text-white transition-colors hover:border-accent-dark hover:bg-accent-dark" type="submit">Apply</button>
             </form>
           @endif

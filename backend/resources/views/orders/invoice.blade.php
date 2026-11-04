@@ -81,10 +81,18 @@
             <td class="label">Shipping</td>
             <td class="text-right">₹{{ number_format($order->shipping_fee, 2) }}</td>
         </tr>
+        <tr class="grand">
+            <td class="label">Total</td>
+            <td class="text-right">₹{{ number_format($order->total, 2) }}</td>
+        </tr>
         @if($order->wallet_amount_used > 0)
             <tr>
                 <td class="label">Wallet Used</td>
-                <td class="text-right">&minus; Rs. {{ number_format($order->wallet_amount_used, 2) }}</td>
+                <td class="text-right">&minus; ₹{{ number_format($order->wallet_amount_used, 2) }}</td>
+            </tr>
+            <tr class="grand">
+                <td class="label">Net Payable</td>
+                <td class="text-right">₹{{ number_format($order->total - $order->wallet_amount_used, 2) }}</td>
             </tr>
         @endif
         @if($order->refunded_amount > 0)
@@ -93,10 +101,6 @@
                 <td class="text-right">&minus; ₹{{ number_format($order->refunded_amount, 2) }}</td>
             </tr>
         @endif
-        <tr class="grand">
-            <td class="label">Total</td>
-            <td class="text-right">₹{{ number_format($order->total, 2) }}</td>
-        </tr>
     </table>
 
     @if($order->order_note)

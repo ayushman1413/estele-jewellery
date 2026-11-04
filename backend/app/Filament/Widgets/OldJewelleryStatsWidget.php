@@ -11,6 +11,10 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class OldJewelleryStatsWidget extends StatsOverviewWidget
 {
+    // See StoreStatsWidget's same override — the 5s CanPoll default re-runs
+    // 9 aggregate queries per open dashboard tab against production.
+    protected ?string $pollingInterval = '60s';
+
     protected static ?int $sort = 2;
 
     protected ?string $heading = 'Old Jewellery';
@@ -71,7 +75,12 @@ class OldJewelleryStatsWidget extends StatsOverviewWidget
                 ->icon(Heroicon::OutlinedUserGroup)
                 ->color('info')
                 ->description("{$vendorAccepted} accepted"),
-            Stat::make('Highest Bid', '₹'.number_format($highestBid, 2))
+            // final_amount is the selected/winning bid per request, not
+            // every bid ever submitted — labeled accordingly so this isn't
+            // read as "the single highest bid a vendor has ever placed"
+            // (that number lives on old_jewellery_bids.amount instead, used
+            // on the request view page's own "Highest bid" column).
+            Stat::make('Highest Final Bid', '₹'.number_format($highestBid, 2))
                 ->icon(Heroicon::OutlinedTrophy)
                 ->color('success')
                 ->description('Average valuation ₹'.number_format($averageValuation, 2)),

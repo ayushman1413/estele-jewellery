@@ -55,7 +55,7 @@ class OtpManager
      * code for the same number first (so only the most recently sent code
      * ever verifies).
      */
-    public function issue(string $phone): void
+    public function issue(string $phone): bool
     {
         $code = (string) random_int(10 ** (self::CODE_LENGTH - 1), (10 ** self::CODE_LENGTH) - 1);
 
@@ -63,13 +63,24 @@ class OtpManager
             ->whereNull('consumed_at')
             ->update(['consumed_at' => now()]);
 
-        OtpCode::create([
+        $otp = OtpCode::create([
             'phone' => $phone,
             'code_hash' => Hash::make($code),
             'expires_at' => now()->addMinutes(self::EXPIRY_MINUTES),
         ]);
 
-        $this->gateway()->send($phone, $code);
+        if ($this->gateway()->send($phone, $code)) {
+            return true;
+        }
+
+        $otp->update(['consumed_at' => now()]);
+
+        return false;
+    }
+
+    public static function normalisePhone(string $phone): string
+    {
+        return substr(preg_replace('/\D/', '', $phone), -10);
     }
 
     /**

@@ -3,8 +3,12 @@
 namespace Tests\Feature\OldJewellery;
 
 use App\Models\OldJewelleryRequest;
+use App\Models\OldJewelleryWalletCredit;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class OldJewellerySellPageTest extends TestCase
@@ -89,7 +93,7 @@ class OldJewellerySellPageTest extends TestCase
         $this->actingAs($user)
             ->get(route('account.sell-jewellery.show', $request))
             ->assertOk()
-            ->assertSee('Bidding Active')
+            ->assertSee('Approved')
             ->assertSee('data-poll-status', false);
     }
 
@@ -113,7 +117,7 @@ class OldJewellerySellPageTest extends TestCase
 
     public function test_store_creates_a_request_and_redirects_to_show(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('original_images');
+        Storage::fake('original_images');
         $user = User::factory()->create();
 
         // Spatie MediaLibrary's acceptsMimeTypes() validates the *actual*
@@ -122,7 +126,7 @@ class OldJewellerySellPageTest extends TestCase
         // no real bytes and sniffs as application/x-empty, so it is rejected
         // regardless of the declared mime. Seed minimal MP4 ftyp-box magic
         // bytes so the fake file is genuinely detected as video/mp4.
-        $video = \Illuminate\Http\UploadedFile::fake()->create('video.mp4', 100, 'video/mp4');
+        $video = UploadedFile::fake()->create('video.mp4', 100, 'video/mp4');
         file_put_contents(
             $video->getRealPath(),
             hex2bin('00000018667479706d703432000000006d703432').str_repeat("\0", 100000)
@@ -156,14 +160,14 @@ class OldJewellerySellPageTest extends TestCase
     {
         $user = User::factory()->create();
         $request = $this->makeRequest(['user_id' => $user->id, 'status' => 'completed']);
-        $txn = \App\Models\WalletTransaction::create([
+        $txn = WalletTransaction::create([
             'user_id' => $user->id,
             'type' => 'credit',
             'amount' => 9000,
             'balance_after' => 9000,
             'reason' => 'old_jewellery_sale',
         ]);
-        \App\Models\OldJewelleryWalletCredit::create([
+        OldJewelleryWalletCredit::create([
             'user_id' => $user->id,
             'old_jewellery_request_id' => $request->id,
             'wallet_transaction_id' => $txn->id,

@@ -22,7 +22,7 @@ class VendorInvitedToBid extends Notification implements ShouldQueue
     {
         $channels = ['mail'];
 
-        if (filled($notifiable->whatsapp_number ?? null)) {
+        if (filled(($notifiable->whatsapp_number ?? null) ?: ($notifiable->mobile ?? null))) {
             $channels[] = WhatsAppChannel::class;
         }
 
@@ -51,6 +51,9 @@ class VendorInvitedToBid extends Notification implements ShouldQueue
 
     private function responseUrl(): string
     {
-        return rtrim(config('app.url'), '/')."/api/v1/vendor/old-jewellery/{$this->plaintextToken}";
+        // The human bid page (old-jewellery.vendor.show), not the JSON API
+        // route of the same shape — a vendor clicking this link needs the
+        // form, not a raw API response.
+        return route('old-jewellery.vendor.show', ['token' => $this->plaintextToken]);
     }
 }

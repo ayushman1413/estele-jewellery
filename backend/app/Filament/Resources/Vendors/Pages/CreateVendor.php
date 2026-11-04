@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Vendors\Pages;
 
 use App\Filament\Resources\Vendors\VendorResource;
+use App\Models\Vendor;
 use App\Services\Vendors\PanelAccessService;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -15,6 +16,13 @@ class CreateVendor extends CreateRecord
      * Creating the contact is what triggers the invite — the admin never sets
      * a password, the recipient chooses their own from the emailed link.
      */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['access_role'] = Vendor::ACCESS_ROLE_VENDOR;
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         if (blank($this->record->email)) {
@@ -27,7 +35,17 @@ class CreateVendor extends CreateRecord
             return;
         }
 
-        $sent = app(PanelAccessService::class)->grant($this->record);
+        try {
+            $sent = app(PanelAccessService::class)->grant($this->record);
+        } catch (\RuntimeException $e) {
+            Notification::make()
+                ->title('Vendor saved, but no login was created')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         if ($sent) {
             Notification::make()

@@ -25,6 +25,12 @@ class ProductObserver
         }
     }
 
+    public function deleting(Product $product): void
+    {
+        // Reviews carry uploaded photos; the FK cascade alone would orphan them.
+        $product->reviews()->get()->each->delete();
+    }
+
     public function deleted(Product $product): void
     {
         $this->flush($product);
@@ -32,10 +38,10 @@ class ProductObserver
 
     private function flush(Product $product): void
     {
-        Cache::tags(['product:' . $product->id])->flush();
+        Cache::tags(['product:'.$product->id])->flush();
 
         foreach ($product->categories()->pluck('categories.id') as $categoryId) {
-            Cache::tags(['category:' . $categoryId])->flush();
+            Cache::tags(['category:'.$categoryId])->flush();
         }
 
         if ($product->is_featured) {

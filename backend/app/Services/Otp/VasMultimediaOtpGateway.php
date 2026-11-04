@@ -36,7 +36,7 @@ class VasMultimediaOtpGateway implements OtpGateway
             && filled(config('services.vas_sms.template_id'));
     }
 
-    public function send(string $phone, string $code): void
+    public function send(string $phone, string $code): bool
     {
         $cleanPhone = substr(preg_replace('/\D/', '', $phone), -10);
         $request = Http::timeout(15);
@@ -62,7 +62,7 @@ class VasMultimediaOtpGateway implements OtpGateway
                 'phone_suffix' => substr($cleanPhone, -4),
             ]);
 
-            return;
+            return false;
         }
 
         $ok = $response->successful() && preg_match('/success|submitted|sent|ok|^[\da-f-]+$/i', trim($response->body()));
@@ -78,5 +78,7 @@ class VasMultimediaOtpGateway implements OtpGateway
                 'phone_suffix' => substr($cleanPhone, -4),
             ]);
         }
+
+        return $ok;
     }
 }

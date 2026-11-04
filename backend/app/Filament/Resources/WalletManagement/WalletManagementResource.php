@@ -22,7 +22,13 @@ class WalletManagementResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Customer Wallets';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Wallet';
+    // Was its own single-item 'Wallet' group — folded into 'Sales' next to
+    // Customers, since both resources list the same underlying users
+    // (customers with no panel roles) and a group with one item in it adds
+    // a click for no organizational benefit.
+    protected static string|\UnitEnum|null $navigationGroup = 'Sales';
+
+    protected static ?int $navigationSort = 2;
 
     public static function table(Table $table): Table
     {
